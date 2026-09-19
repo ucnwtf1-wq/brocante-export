@@ -25,6 +25,13 @@
 
 * { box-sizing: border-box; }
 
+/* Garantit que l'attribut "hidden" masque TOUJOURS l'élément, même quand
+   une classe (ex : celles qui mettent "display: flex") s'applique en même
+   temps. Sans cette règle, un bloc à la fois "hidden" et par ex. en
+   "display: flex" via sa classe restait affiché malgré tout (c'était le
+   cas du bloc "De / à" de la période, visible même en mode Année). */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   padding: 0;
@@ -379,6 +386,15 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
 
 .row-2 { display: flex; gap: 10px; margin-top: 10px; }
 .row-2 input { flex: 1; }
+
+.row-3 { display: flex; gap: 8px; margin-top: 6px; }
+.champ-dim { flex: 1; min-width: 0; }
+.champ-dim .dim-label { display: block; font-weight: 700; font-size: 0.85rem; color: var(--text-dim); margin-bottom: 4px; }
+.champ-dim input { width: 100%; padding: 12px 8px; text-align: center; }
+
+.row-ajout-libre { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
+.row-ajout-libre .champ-texte-libre { flex: 1; margin-top: 0; }
+.row-ajout-libre .btn-mini { white-space: nowrap; }
 
 /* ---------- Récapitulatif ---------- */
 

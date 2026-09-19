@@ -82,7 +82,10 @@
 
     <label class="label-champ">Matière</label>
     <div id="grille-matiere" class="grille-chips"></div>
-    <input type="text" id="champ-matiere-autre" class="champ-texte-libre" placeholder="Précisez la matière" hidden>
+    <div id="bloc-matiere-autre" class="row-ajout-libre" hidden>
+      <input type="text" id="champ-matiere-autre" class="champ-texte-libre" placeholder="Précisez la matière">
+      <button type="button" id="btn-ajouter-matiere-autre" class="btn-mini">Ajouter à la liste</button>
+    </div>
 
     <div id="bloc-essence" hidden>
       <label class="label-champ">Essence de bois</label>
@@ -92,7 +95,10 @@
 
     <label class="label-champ">Origine</label>
     <div id="grille-origine" class="grille-chips"></div>
-    <input type="text" id="champ-origine-autre" class="champ-texte-libre" placeholder="Précisez le pays" hidden>
+    <div id="bloc-origine-autre" class="row-ajout-libre" hidden>
+      <input type="text" id="champ-origine-autre" class="champ-texte-libre" placeholder="Précisez le pays">
+      <button type="button" id="btn-ajouter-origine-autre" class="btn-mini">Ajouter à la liste</button>
+    </div>
   </div>
 
   <div class="bloc-carte">
@@ -136,7 +142,20 @@
     </div>
 
     <label class="label-champ">Dimensions</label>
-    <input type="text" id="champ-dimensions" placeholder="Ex : H 46 / L 57 / P 69">
+    <div class="row-3">
+      <div class="champ-dim">
+        <span class="dim-label">H :</span>
+        <input type="text" id="champ-dim-h" inputmode="decimal" placeholder="Ex : 46">
+      </div>
+      <div class="champ-dim">
+        <span class="dim-label">l :</span>
+        <input type="text" id="champ-dim-l" inputmode="decimal" placeholder="Ex : 57">
+      </div>
+      <div class="champ-dim">
+        <span class="dim-label">L :</span>
+        <input type="text" id="champ-dim-long" inputmode="decimal" placeholder="Ex : 69">
+      </div>
+    </div>
   </div>
 
   <button id="btn-voir-recap" class="btn-geant">Voir le récapitulatif</button>

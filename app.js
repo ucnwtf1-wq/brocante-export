@@ -215,7 +215,9 @@ function creerBrouillonVide() {
     peseesKg: [],
     prixEur: '',
     periode: { type: 'annee_precise', annee: '' },
-    dimensions: '',
+    dimH: '',
+    dimL: '',
+    dimLong: '',
     photoBase64: null
   };
 }
@@ -325,15 +327,12 @@ function allerAuFormulaire() {
   el('champ-designation').value = state.draft.designation || '';
   el('champ-colis').value = state.draft.nombreColis != null ? state.draft.nombreColis : 1;
   el('champ-prix').value = state.draft.prixEur || '';
-  el('champ-dimensions').value = state.draft.dimensions || '';
+  el('champ-dim-h').value = state.draft.dimH || '';
+  el('champ-dim-l').value = state.draft.dimL || '';
+  el('champ-dim-long').value = state.draft.dimLong || '';
 
-  construireChips('grille-matiere', state.suggestions.matiere, state.draft.matiereCategorie, (val) => {
-    state.draft.matiereCategorie = val;
-    el('champ-matiere-autre').hidden = val !== 'Autre';
-    afficherBlocEssenceSiBesoin();
-    sauvegarderBrouillon();
-  });
-  el('champ-matiere-autre').hidden = state.draft.matiereCategorie !== 'Autre';
+  construireChips('grille-matiere', state.suggestions.matiere, state.draft.matiereCategorie, onChoixMatiere);
+  el('bloc-matiere-autre').hidden = state.draft.matiereCategorie !== 'Autre';
   el('champ-matiere-autre').value = state.draft.matiereAutre || '';
   afficherBlocEssenceSiBesoin();
 
@@ -345,12 +344,8 @@ function allerAuFormulaire() {
   el('champ-essence-autre').hidden = state.draft.essenceBois !== 'Autre';
   el('champ-essence-autre').value = state.draft.essenceAutre || '';
 
-  construireChips('grille-origine', state.suggestions.origine, state.draft.origine, (val) => {
-    state.draft.origine = val;
-    el('champ-origine-autre').hidden = val !== 'Autre';
-    sauvegarderBrouillon();
-  });
-  el('champ-origine-autre').hidden = state.draft.origine !== 'Autre';
+  construireChips('grille-origine', state.suggestions.origine, state.draft.origine, onChoixOrigine);
+  el('bloc-origine-autre').hidden = state.draft.origine !== 'Autre';
   el('champ-origine-autre').value = state.draft.origineAutre || '';
 
   if (state.draft.periode && state.draft.periode.type === 'fourchette') {
@@ -370,6 +365,58 @@ function afficherBlocEssenceSiBesoin() {
   const estBois = state.draft.matiereCategorie === 'Bois';
   el('bloc-essence').hidden = !estBois;
 }
+
+function onChoixMatiere(val) {
+  state.draft.matiereCategorie = val;
+  el('bloc-matiere-autre').hidden = val !== 'Autre';
+  afficherBlocEssenceSiBesoin();
+  sauvegarderBrouillon();
+}
+
+function onChoixOrigine(val) {
+  state.draft.origine = val;
+  el('bloc-origine-autre').hidden = val !== 'Autre';
+  sauvegarderBrouillon();
+}
+
+// Ajoute une valeur tapée dans "Autre" à la liste des choix rapides (chips),
+// pour que le client n'ait pas à la retaper à chaque nouvel article tant que
+// le tableau ne l'a pas encore remontée automatiquement. Purement local à
+// l'appareil : la liste "officielle" continue par ailleurs à se mettre à
+// jour toute seule depuis le tableau.
+function ajouterSuggestionLocale(champ, valeurBrute) {
+  const valeur = (valeurBrute || '').trim();
+  if (!valeur) return null;
+  const liste = state.suggestions[champ];
+  const dejaPresente = liste.find((v) => v.toLowerCase() === valeur.toLowerCase());
+  if (dejaPresente) return dejaPresente;
+  liste.unshift(valeur);
+  state.suggestions[champ] = Array.from(new Set(liste)).slice(0, MAX_SUGGESTIONS_AFFICHEES);
+  try {
+    const cache = JSON.parse(localStorage.getItem(SUGGESTIONS_KEY) || '{}');
+    cache[champ] = state.suggestions[champ];
+    localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(cache));
+  } catch (e) { /* pas bloquant */ }
+  return valeur;
+}
+
+el('btn-ajouter-matiere-autre').addEventListener('click', () => {
+  const val = ajouterSuggestionLocale('matiere', el('champ-matiere-autre').value);
+  if (!val) return;
+  state.draft.matiereAutre = '';
+  construireChips('grille-matiere', state.suggestions.matiere, val, onChoixMatiere);
+  onChoixMatiere(val);
+  el('champ-matiere-autre').value = '';
+});
+
+el('btn-ajouter-origine-autre').addEventListener('click', () => {
+  const val = ajouterSuggestionLocale('origine', el('champ-origine-autre').value);
+  if (!val) return;
+  state.draft.origineAutre = '';
+  construireChips('grille-origine', state.suggestions.origine, val, onChoixOrigine);
+  onChoixOrigine(val);
+  el('champ-origine-autre').value = '';
+});
 
 function construireChips(idGrille, valeurs, valeurChoisie, onChoix) {
   const grille = el(idGrille);
@@ -392,14 +439,17 @@ function construireChips(idGrille, valeurs, valeurChoisie, onChoix) {
 
 // Champs texte : sauvegarde automatique du brouillon à chaque frappe
 ['champ-designation', 'champ-matiere-autre', 'champ-essence-autre', 'champ-origine-autre',
-  'champ-prix', 'champ-dimensions', 'champ-annee', 'champ-annee-de', 'champ-annee-a'].forEach((id) => {
+  'champ-prix', 'champ-dim-h', 'champ-dim-l', 'champ-dim-long',
+  'champ-annee', 'champ-annee-de', 'champ-annee-a'].forEach((id) => {
   el(id).addEventListener('input', () => {
     state.draft.designation = el('champ-designation').value;
     state.draft.matiereAutre = el('champ-matiere-autre').value;
     state.draft.essenceAutre = el('champ-essence-autre').value;
     state.draft.origineAutre = el('champ-origine-autre').value;
     state.draft.prixEur = el('champ-prix').value;
-    state.draft.dimensions = el('champ-dimensions').value;
+    state.draft.dimH = el('champ-dim-h').value;
+    state.draft.dimL = el('champ-dim-l').value;
+    state.draft.dimLong = el('champ-dim-long').value;
     sauvegarderBrouillon();
   });
 });
@@ -515,6 +565,19 @@ function texteRecapPeriode(p) {
   return p.annee || '(non précisée)';
 }
 
+// Construit la ligne "H : ... / l : ... / L : ..." envoyée telle quelle au
+// tableau, en ne gardant que les dimensions effectivement renseignées.
+function calculerDimensionsFinale() {
+  const h = (state.draft.dimH || '').trim();
+  const l = (state.draft.dimL || '').trim();
+  const lo = (state.draft.dimLong || '').trim();
+  const parties = [];
+  if (h) parties.push('H : ' + h);
+  if (l) parties.push('l : ' + l);
+  if (lo) parties.push('L : ' + lo);
+  return parties.join(' / ');
+}
+
 el('btn-voir-recap').addEventListener('click', () => {
   state.draft.origine = state.draft.origine; // déjà à jour via chips
   state.draft.periode = calculerPeriodeFinale();
@@ -535,7 +598,7 @@ el('btn-voir-recap').addEventListener('click', () => {
     // jusqu'au tableau final.
     ['Prix d\'achat', state.draft.prixEur ? state.draft.prixEur + ' €' : '⚠ Prix non renseigné'],
     ['Période', texteRecapPeriode(state.draft.periode)],
-    ['Dimensions', state.draft.dimensions || '(non précisées)']
+    ['Dimensions', calculerDimensionsFinale() || '(non précisées)']
   ];
 
   const conteneur = el('recap-contenu');
@@ -588,7 +651,7 @@ el('btn-valider-article').addEventListener('click', async () => {
     peseesKg: state.draft.peseesKg || [],
     prixEur: parseFloat(state.draft.prixEur) || 0,
     periode: state.draft.periode,
-    dimensions: state.draft.dimensions || '',
+    dimensions: calculerDimensionsFinale(),
     photoBase64: state.draft.photoBase64 || null,
     dateValidation: new Date().toISOString(),
     statutSync: 'en_attente',
