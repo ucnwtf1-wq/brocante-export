@@ -622,13 +622,68 @@ async function afficherListeArticles() {
       '</div>' +
       '<span class="badge ' + badgeClasse + '">' + badgeTexte + '</span>' +
       '<button class="btn-supprimer-article" title="Supprimer">🗑</button>';
-    carte.querySelector('.btn-supprimer-article').addEventListener('click', () => supprimerArticle(a));
+    // Taper n'importe où sur la carte (sauf la poubelle) ouvre le détail
+    // complet de l'article.
+    carte.querySelector('.btn-supprimer-article').addEventListener('click', (evt) => {
+      evt.stopPropagation();
+      supprimerArticle(a);
+    });
+    carte.addEventListener('click', () => afficherDetailArticle(a));
     conteneur.appendChild(carte);
   });
   afficherEcran('screen-list');
 }
 
 el('btn-liste-retour').addEventListener('click', () => rafraichirAccueil());
+
+// ---------------- Détail d'un article ----------------
+// Toutes les informations viennent de l'article déjà enregistré sur le
+// téléphone (IndexedDB) — aucun appel réseau nécessaire, ça marche donc
+// aussi bien hors-ligne.
+
+function afficherDetailArticle(article) {
+  const poidsTotal = (article.peseesKg || []).reduce((a, b) => a + Number(b), 0);
+  const lignes = [
+    ['Référence', article.reference || '(à venir, pas encore envoyé)'],
+    ['Désignation', article.designation || '(vide)'],
+    ['Matière', article.matiereFinale || '(non précisée)'],
+    ['Origine', article.origine || '(non précisée)'],
+    ['Nombre de colis', article.nombreColis],
+    ['Poids total', Math.round(poidsTotal * 100) / 100 + ' kg'],
+    ['Prix d\'achat', article.prixEur ? article.prixEur + ' €' : '⚠ Prix non renseigné'],
+    ['Période', article.periode ? texteRecapPeriode(article.periode) : '(non précisée)'],
+    ['Dimensions', article.dimensions || '(non précisées)']
+  ];
+
+  const conteneur = el('detail-contenu');
+  conteneur.innerHTML = '';
+  if (article.photoBase64) {
+    const img = document.createElement('img');
+    img.src = article.photoBase64;
+    img.className = 'recap-photo';
+    conteneur.appendChild(img);
+  }
+  lignes.forEach(([label, valeur]) => {
+    const ligne = document.createElement('div');
+    ligne.className = 'recap-ligne';
+    ligne.innerHTML = '<span>' + label + '</span><span class="valeur"></span>';
+    const valeurEl = ligne.querySelector('.valeur');
+    valeurEl.textContent = valeur;
+    if (typeof valeur === 'string' && valeur.indexOf('⚠') === 0) valeurEl.classList.add('valeur-alerte');
+    conteneur.appendChild(ligne);
+  });
+
+  if (article.statutSync === 'echec_a_corriger' && article.derniereErreur) {
+    const erreur = document.createElement('div');
+    erreur.className = 'article-erreur';
+    erreur.textContent = 'Problème signalé par le serveur : ' + article.derniereErreur;
+    conteneur.appendChild(erreur);
+  }
+
+  afficherEcran('screen-detail');
+}
+
+el('btn-detail-retour').addEventListener('click', () => afficherListeArticles());
 
 // window.confirm() ne s'affiche pas de façon fiable dans une application
 // installée en plein écran (mode "standalone") sur certains téléphones
@@ -691,26 +746,39 @@ async function supprimerArticle(article) {
 
 // ---------------- Bandeau d'état de synchronisation ----------------
 
+// Mémorise le dernier nombre d'articles "en attente" connu, pour ne
+// déclencher le message "Tout est envoyé" qu'au moment où ça vient tout
+// juste de se terminer — jamais à chaque vérification périodique.
+// SANS CETTE MÉMOIRE : le setInterval ci-dessous appelle cette fonction
+// toutes les 5 secondes, et tant que le container a des articles et que
+// rien n'est en attente, elle réaffichait le bandeau à chaque fois (avant
+// qu'il ne se cache tout seul 4 secondes plus tard) — ce qui le faisait
+// clignoter en permanence et donnait l'impression que l'écran "tremble".
+let dernierNombreEnAttente = null;
+
 async function rafraichirBandeau() {
-  if (!state.containerLetter) { el('banner-sync').hidden = true; return; }
-  const counts = await dbCountByStatus(state.containerLetter);
   const banniere = el('banner-sync');
-  if (counts.en_attente === 0) {
-    if (counts.total > 0) {
-      banniere.hidden = false;
-      banniere.className = 'banner ok';
-      banniere.textContent = 'Tout est envoyé (' + counts.total + ' article(s))';
-      setTimeout(() => { banniere.hidden = true; }, 4000);
-    } else {
-      banniere.hidden = true;
-    }
+  if (!state.containerLetter) { banniere.hidden = true; return; }
+  const counts = await dbCountByStatus(state.containerLetter);
+
+  if (counts.en_attente > 0) {
+    dernierNombreEnAttente = counts.en_attente;
+    banniere.hidden = false;
+    banniere.className = 'banner';
+    banniere.textContent = navigator.onLine
+      ? 'Envoi en cours… ' + texteArticles(counts.en_attente) + ' en attente'
+      : 'Pas de connexion — ' + texteArticles(counts.en_attente) + ' en attente d\'envoi';
     return;
   }
-  banniere.hidden = false;
-  banniere.className = 'banner';
-  banniere.textContent = navigator.onLine
-    ? 'Envoi en cours… ' + counts.en_attente + ' article(s) en attente'
-    : 'Pas de connexion — ' + counts.en_attente + ' article(s) enregistrés, en attente d\'envoi';
+
+  const vientJusteDeFinir = dernierNombreEnAttente > 0;
+  dernierNombreEnAttente = 0;
+  if (vientJusteDeFinir && counts.total > 0) {
+    banniere.hidden = false;
+    banniere.className = 'banner ok';
+    banniere.textContent = 'Tout est envoyé (' + texteArticles(counts.total) + ')';
+    setTimeout(() => { banniere.hidden = true; }, 4000);
+  }
 }
 
 onSyncStateChange(() => { rafraichirBandeau(); });

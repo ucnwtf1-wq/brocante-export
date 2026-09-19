@@ -425,7 +425,12 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
   border: 2px solid var(--border);
   border-radius: var(--radius);
   padding: 10px;
+  cursor: pointer;
 }
+/* Toute la carte ouvre le détail de l'article au tap (sauf la poubelle,
+   qui a son propre gestionnaire de clic) — ce léger changement de fond
+   confirme visuellement que la carte répond au tap. */
+.article-carte:active { background: var(--bg); }
 .article-carte img {
   width: 60px;
   height: 60px;
@@ -449,6 +454,7 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
 .article-designation { font-weight: 700; }
 .article-meta { color: var(--text-dim); font-size: 0.95rem; }
 .article-erreur { color: var(--danger); font-size: 0.9rem; font-weight: 600; margin-top: 2px; }
+.recap-contenu .article-erreur { margin-top: 14px; }
 .badge {
   font-size: 0.92rem;
   font-weight: 800;
