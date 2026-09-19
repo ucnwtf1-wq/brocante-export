@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#8a5a34">
+<title>Brocante Export</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="banner-sync" class="banner" hidden></div>
+
+<!-- ===================== ACCUEIL ===================== -->
+<section id="screen-home" class="screen">
+  <div class="home-header">
+    <div class="home-container-label">Container <span id="home-lettre">-</span></div>
+    <div class="home-count"><span id="home-count-total">0</span> article(s)</div>
+  </div>
+  <button id="btn-ajouter" class="btn-geant">+ Ajouter un article</button>
+  <div class="home-links">
+    <button id="btn-voir-articles" class="lien">Voir les articles de ce container</button>
+    <button id="btn-nouveau-container" class="lien">Nouveau container</button>
+  </div>
+</section>
+
+<!-- ===================== NOUVEAU CONTAINER ===================== -->
+<section id="screen-container" class="screen" hidden>
+  <h1>Quelle lettre pour ce container ?</h1>
+  <div id="grille-lettres" class="grille-lettres"></div>
+  <button id="btn-annuler-container" class="lien">Annuler</button>
+</section>
+
+<!-- ===================== CONFIRMATION CONTAINER ===================== -->
+<section id="screen-confirm-container" class="screen" hidden>
+  <h1 id="confirm-container-titre">Créer le container ?</h1>
+  <p id="confirm-container-texte" class="texte-info"></p>
+  <button id="btn-confirmer-container" class="btn-geant">Oui, continuer</button>
+  <button id="btn-annuler-confirm-container" class="lien">Annuler</button>
+</section>
+
+<!-- ===================== PHOTO ===================== -->
+<section id="screen-photo" class="screen" hidden>
+  <h1>Photo de l'article</h1>
+  <div class="photo-zone">
+    <img id="photo-apercu" hidden>
+    <div id="photo-placeholder" class="photo-placeholder">📷</div>
+  </div>
+  <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
+  <button id="btn-prendre-photo" class="btn-geant">📷 Prendre une photo</button>
+  <button id="btn-photo-suivant" class="btn-geant btn-secondaire" hidden>Utiliser cette photo</button>
+  <button id="btn-sans-photo" class="lien">Continuer sans photo</button>
+</section>
+
+<!-- ===================== FORMULAIRE ===================== -->
+<section id="screen-form" class="screen" hidden>
+  <div class="form-photo-mini">
+    <img id="form-photo-mini-img" hidden>
+  </div>
+
+  <label class="label-champ">Désignation</label>
+  <textarea id="champ-designation" rows="2" placeholder="Ex : Commode Louis XV" autocapitalize="sentences"></textarea>
+
+  <label class="label-champ">Matière</label>
+  <div id="grille-matiere" class="grille-chips"></div>
+  <input type="text" id="champ-matiere-autre" class="champ-texte-libre" placeholder="Précisez la matière" hidden>
+
+  <div id="bloc-essence" hidden>
+    <label class="label-champ">Essence de bois</label>
+    <div id="grille-essence" class="grille-chips"></div>
+    <input type="text" id="champ-essence-autre" class="champ-texte-libre" placeholder="Précisez l'essence" hidden>
+  </div>
+
+  <label class="label-champ">Origine</label>
+  <div id="grille-origine" class="grille-chips"></div>
+  <input type="text" id="champ-origine-autre" class="champ-texte-libre" placeholder="Précisez le pays" hidden>
+
+  <label class="label-champ">Nombre de colis</label>
+  <div class="stepper">
+    <button id="btn-colis-moins" class="stepper-btn">–</button>
+    <input type="number" id="champ-colis" class="stepper-valeur" inputmode="numeric" value="1" min="0">
+    <button id="btn-colis-plus" class="stepper-btn">+</button>
+  </div>
+
+  <label class="label-champ">Poids</label>
+  <div class="panier-poids">
+    <div class="panier-total">Poids total : <strong><span id="poids-total">0</span> kg</strong></div>
+    <div id="liste-pesees" class="liste-pesees"></div>
+    <div class="ajout-pesee">
+      <input type="number" id="champ-nouvelle-pesee" inputmode="decimal" placeholder="ex : 37" step="0.01">
+      <button id="btn-ajouter-pesee" class="btn-mini">+ Ajouter</button>
+    </div>
+  </div>
+
+  <label class="label-champ">Prix d'achat (€)</label>
+  <input type="number" id="champ-prix" inputmode="decimal" step="0.01" placeholder="0">
+
+  <label class="label-champ">Période</label>
+  <div class="toggle-periode">
+    <button id="btn-periode-annee" class="toggle-btn active">Année précise</button>
+    <button id="btn-periode-fourchette" class="toggle-btn">Période (de...à...)</button>
+  </div>
+  <div id="periode-annee-bloc">
+    <input type="number" id="champ-annee" inputmode="numeric" placeholder="Ex : 1900">
+  </div>
+  <div id="periode-fourchette-bloc" hidden class="row-2">
+    <input type="number" id="champ-annee-de" inputmode="numeric" placeholder="De">
+    <input type="number" id="champ-annee-a" inputmode="numeric" placeholder="À">
+  </div>
+
+  <label class="label-champ">Dimensions</label>
+  <input type="text" id="champ-dimensions" placeholder="Ex : H 46 / L 57 / P 69">
+
+  <button id="btn-voir-recap" class="btn-geant">Voir le récapitulatif</button>
+  <button id="btn-annuler-form" class="lien">Annuler cet article</button>
+</section>
+
+<!-- ===================== RÉCAPITULATIF ===================== -->
+<section id="screen-recap" class="screen" hidden>
+  <h1>Vérifiez avant d'enregistrer</h1>
+  <div id="recap-contenu" class="recap-contenu"></div>
+  <button id="btn-valider-article" class="btn-geant">Valider l'article</button>
+  <button id="btn-modifier-article" class="lien">Modifier</button>
+</section>
+
+<!-- ===================== CONFIRMATION ===================== -->
+<section id="screen-confirmation" class="screen" hidden>
+  <div class="confirmation-coche">✔</div>
+  <h1>Article enregistré</h1>
+  <p class="texte-info">Il est en sécurité sur votre téléphone et part vers le tableau dès que possible.</p>
+  <button id="btn-article-suivant" class="btn-geant">Article suivant</button>
+  <button id="btn-retour-accueil" class="lien">Retour à l'accueil</button>
+</section>
+
+<!-- ===================== LISTE DES ARTICLES ===================== -->
+<section id="screen-list" class="screen" hidden>
+  <h1>Articles du container <span id="list-lettre"></span></h1>
+  <div id="liste-articles" class="liste-articles"></div>
+  <button id="btn-liste-retour" class="lien">Retour à l'accueil</button>
+</section>
+
+<script src="config.js"></script>
+<script src="idb.js"></script>
+<script src="api.js"></script>
+<script src="sync.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

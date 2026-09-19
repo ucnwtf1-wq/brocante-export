@@ -1,0 +1,386 @@
+/* ============================================================
+   Brocante Export — style mobile, gros boutons, fort contraste
+   (utilisateur non technophile, usage en extérieur / hangar)
+   ============================================================ */
+
+:root {
+  --bg: #faf8f5;
+  --surface: #ffffff;
+  --border: #d9d2c6;
+  --text: #1c1a17;
+  --text-dim: #55504a;
+  --accent: #8a5a34;
+  --accent-text: #ffffff;
+  --success: #2e7d46;
+  --success-bg: #e3f3e6;
+  --warning: #b3651f;
+  --warning-bg: #fbecd9;
+  --danger: #a4331f;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.screen {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 18px 100px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 10px 0 20px;
+  text-align: center;
+}
+
+.texte-info {
+  color: var(--text-dim);
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* ---------- Boutons ---------- */
+
+.btn-geant {
+  display: block;
+  width: 100%;
+  padding: 22px 16px;
+  margin: 14px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+.btn-geant:active { opacity: 0.85; }
+.btn-geant.btn-secondaire {
+  background: var(--success);
+}
+
+.lien {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-weight: 600;
+  padding: 14px;
+  margin: 4px 0;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.btn-mini {
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+/* ---------- Accueil ---------- */
+
+.home-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.home-container-label {
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+.home-count {
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  margin-top: 4px;
+}
+.home-links { margin-top: 30px; }
+
+/* ---------- Bandeau de synchronisation ---------- */
+
+.banner {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+  background: var(--warning-bg);
+  color: var(--warning);
+  border-bottom: 2px solid var(--warning);
+}
+.banner.ok {
+  background: var(--success-bg);
+  color: var(--success);
+  border-bottom-color: var(--success);
+}
+
+/* ---------- Grille de lettres (nouveau container) ---------- */
+
+.grille-lettres {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+.grille-lettres button {
+  padding: 20px 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.grille-lettres button:active { background: var(--accent); color: var(--accent-text); }
+
+/* ---------- Photo ---------- */
+
+.photo-zone {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  max-height: 340px;
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.photo-zone img { width: 100%; height: 100%; object-fit: cover; }
+.photo-placeholder { font-size: 4rem; opacity: 0.4; }
+
+.form-photo-mini {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+.form-photo-mini img {
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+}
+
+/* ---------- Formulaire ---------- */
+
+.label-champ {
+  display: block;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 22px 0 8px;
+}
+
+textarea, input[type="text"], input[type="number"], .champ-texte-libre {
+  width: 100%;
+  padding: 14px;
+  font-size: 1.1rem;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+}
+.champ-texte-libre { margin-top: 10px; }
+
+.grille-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  padding: 12px 18px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.chip.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stepper-btn {
+  width: 56px;
+  height: 56px;
+  font-size: 1.8rem;
+  font-weight: 700;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+}
+.stepper-valeur {
+  flex: 1;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 12px;
+}
+
+.panier-poids {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.panier-total { font-size: 1.15rem; margin-bottom: 10px; }
+.liste-pesees { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.pesee-chip {
+  padding: 8px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pesee-chip button {
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-weight: 800;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.ajout-pesee { display: flex; gap: 8px; }
+.ajout-pesee input { flex: 1; }
+
+.toggle-periode { display: flex; gap: 8px; }
+.toggle-btn {
+  flex: 1;
+  padding: 14px 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.toggle-btn.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+
+.row-2 { display: flex; gap: 10px; margin-top: 10px; }
+.row-2 input { flex: 1; }
+
+/* ---------- Récapitulatif ---------- */
+
+.recap-contenu {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.recap-ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.02rem;
+}
+.recap-ligne:last-child { border-bottom: none; }
+.recap-ligne .valeur { font-weight: 700; text-align: right; }
+.recap-photo {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+/* ---------- Confirmation ---------- */
+
+.confirmation-coche {
+  width: 110px;
+  height: 110px;
+  line-height: 110px;
+  text-align: center;
+  font-size: 3rem;
+  color: var(--success);
+  background: var(--success-bg);
+  border-radius: 50%;
+  margin: 30px auto 20px;
+}
+
+/* ---------- Liste des articles ---------- */
+
+.liste-articles { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.article-carte {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+.article-carte img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.article-carte .article-placeholder {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+.article-info { flex: 1; min-width: 0; }
+.article-designation { font-weight: 700; }
+.article-meta { color: var(--text-dim); font-size: 0.88rem; }
+.badge {
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge.envoye { background: var(--success-bg); color: var(--success); }
+.badge.en_attente { background: var(--border); color: var(--text-dim); }
+.badge.echec_a_corriger { background: var(--warning-bg); color: var(--warning); }
