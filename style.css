@@ -309,6 +309,29 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
   color: var(--accent-text);
 }
 
+/* Pastille "ajoutée" (matière/origine tapée dans "Autre") : un petit bouton
+   "×" accolé permet de la supprimer de la liste, séparément du bouton
+   principal qui sert à la sélectionner. */
+.chip-groupe { display: inline-flex; }
+.chip-groupe .chip {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: none;
+}
+.chip-suppr {
+  padding: 0 14px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  border: 2px solid var(--border);
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
+  background: var(--surface);
+  color: var(--danger);
+  cursor: pointer;
+  min-width: 40px;
+}
+.chip-groupe .chip.selected + .chip-suppr { border-color: var(--accent); }
+
 .stepper {
   display: flex;
   align-items: center;

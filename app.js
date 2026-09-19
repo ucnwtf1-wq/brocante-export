@@ -8,6 +8,7 @@ const DEFAULT_ORIGINES = ['France', 'Belgique', 'Chine', 'Japon', 'Angleterre', 
 const DRAFT_KEY = 'draft_en_cours';
 const CONTAINER_KEY = 'container_actuel';
 const SUGGESTIONS_KEY = 'suggestions_cache';
+const SUGGESTIONS_MASQUEES_KEY = 'suggestions_masquees';
 const CONTAINERS_LISTE_KEY = 'containers_liste_cache';
 
 const el = (id) => document.getElementById(id);
@@ -331,7 +332,7 @@ function allerAuFormulaire() {
   el('champ-dim-l').value = state.draft.dimL || '';
   el('champ-dim-long').value = state.draft.dimLong || '';
 
-  construireChipsMulti('grille-matiere', state.suggestions.matiere, state.draft.matieresChoisies, onToggleMatiere);
+  construireChipsMulti('grille-matiere', state.suggestions.matiere, state.draft.matieresChoisies, onToggleMatiere, 'matiere');
   el('bloc-matiere-autre').hidden = !(state.draft.matieresChoisies || []).includes('Autre');
   el('champ-matiere-autre').value = state.draft.matiereAutre || '';
   afficherBlocEssenceSiBesoin();
@@ -344,7 +345,7 @@ function allerAuFormulaire() {
   el('champ-essence-autre').hidden = state.draft.essenceBois !== 'Autre';
   el('champ-essence-autre').value = state.draft.essenceAutre || '';
 
-  construireChips('grille-origine', state.suggestions.origine, state.draft.origine, onChoixOrigine);
+  construireChips('grille-origine', state.suggestions.origine, state.draft.origine, onChoixOrigine, 'origine');
   el('bloc-origine-autre').hidden = state.draft.origine !== 'Autre';
   el('champ-origine-autre').value = state.draft.origineAutre || '';
 
@@ -418,7 +419,7 @@ el('btn-ajouter-matiere-autre').addEventListener('click', () => {
   state.draft.matiereAutre = '';
   el('champ-matiere-autre').value = '';
   el('bloc-matiere-autre').hidden = true;
-  construireChipsMulti('grille-matiere', state.suggestions.matiere, state.draft.matieresChoisies, onToggleMatiere);
+  construireChipsMulti('grille-matiere', state.suggestions.matiere, state.draft.matieresChoisies, onToggleMatiere, 'matiere');
   afficherBlocEssenceSiBesoin();
   sauvegarderBrouillon();
 });
@@ -427,12 +428,12 @@ el('btn-ajouter-origine-autre').addEventListener('click', () => {
   const val = ajouterSuggestionLocale('origine', el('champ-origine-autre').value);
   if (!val) return;
   state.draft.origineAutre = '';
-  construireChips('grille-origine', state.suggestions.origine, val, onChoixOrigine);
+  construireChips('grille-origine', state.suggestions.origine, val, onChoixOrigine, 'origine');
   onChoixOrigine(val);
   el('champ-origine-autre').value = '';
 });
 
-function construireChips(idGrille, valeurs, valeurChoisie, onChoix) {
+function construireChips(idGrille, valeurs, valeurChoisie, onChoix, champ) {
   const grille = el(idGrille);
   grille.innerHTML = '';
   const toutes = [...valeurs];
@@ -447,14 +448,14 @@ function construireChips(idGrille, valeurs, valeurChoisie, onChoix) {
       chip.classList.add('selected');
       onChoix(val);
     });
-    grille.appendChild(chip);
+    grille.appendChild(envelopperAvecSuppressionSiBesoin(chip, champ, val));
   });
 }
 
 // Variante à sélection multiple (plusieurs pastilles cochables en même
 // temps) : utilisée pour la matière, un objet pouvant combiner plusieurs
 // matières (ex : bois + marbre).
-function construireChipsMulti(idGrille, valeurs, valeursChoisies, onToggle) {
+function construireChipsMulti(idGrille, valeurs, valeursChoisies, onToggle, champ) {
   const grille = el(idGrille);
   grille.innerHTML = '';
   const toutes = [...valeurs];
@@ -469,8 +470,78 @@ function construireChipsMulti(idGrille, valeurs, valeursChoisies, onToggle) {
       chip.classList.toggle('selected');
       onToggle(val, chip.classList.contains('selected'));
     });
-    grille.appendChild(chip);
+    grille.appendChild(envelopperAvecSuppressionSiBesoin(chip, champ, val));
   });
+}
+
+// Ajoute un petit bouton "×" à côté d'une pastille quand elle est
+// supprimable (une pastille "ajoutée" par le client — jamais une matière/
+// origine de base, ni "Autre"). L'appui dessus déclenche la suppression
+// (avec double validation, voir demanderSuppressionSuggestion), séparément
+// du bouton principal qui sert lui à sélectionner la pastille.
+function envelopperAvecSuppressionSiBesoin(chip, champ, val) {
+  if (!champ || !estSuggestionSupprimable(champ, val)) return chip;
+  const groupe = document.createElement('span');
+  groupe.className = 'chip-groupe';
+  groupe.appendChild(chip);
+  const btnSuppr = document.createElement('button');
+  btnSuppr.type = 'button';
+  btnSuppr.className = 'chip-suppr';
+  btnSuppr.textContent = '×';
+  btnSuppr.setAttribute('aria-label', 'Supprimer ' + val);
+  btnSuppr.addEventListener('click', (evt) => {
+    evt.stopPropagation();
+    demanderSuppressionSuggestion(champ, val);
+  });
+  groupe.appendChild(btnSuppr);
+  return groupe;
+}
+
+function estSuggestionSupprimable(champ, val) {
+  if (val === 'Autre') return false;
+  const defauts = champ === 'matiere' ? DEFAULT_MATIERES : DEFAULT_ORIGINES;
+  return !defauts.includes(val);
+}
+
+function chargerSuggestionsMasquees() {
+  try {
+    return JSON.parse(localStorage.getItem(SUGGESTIONS_MASQUEES_KEY) || '{}');
+  } catch (e) { return {}; }
+}
+
+function masquerSuggestionDefinitivement(champ, val) {
+  try {
+    const masquees = chargerSuggestionsMasquees();
+    masquees[champ] = masquees[champ] || [];
+    if (!masquees[champ].includes(val)) masquees[champ].push(val);
+    localStorage.setItem(SUGGESTIONS_MASQUEES_KEY, JSON.stringify(masquees));
+  } catch (e) { /* pas bloquant */ }
+}
+
+// Supprime une pastille "ajoutée" (matière ou origine) de la liste des
+// choix rapides — après double validation : l'appui sur le "×" déclenche
+// cette fenêtre de confirmation, pour éviter qu'un tap accidentel n'efface
+// une suggestion utile. Une fois supprimée, elle ne revient plus, même
+// après une prochaine synchronisation (elle reste tapable via "Autre").
+async function demanderSuppressionSuggestion(champ, val) {
+  const confirme = await confirmerPersonnalise('Supprimer "' + val + '" de la liste ?\n\nCette suggestion ne sera plus proposée (vous pourrez toujours la retaper via "Autre" si besoin).');
+  if (!confirme) return;
+
+  state.suggestions[champ] = (state.suggestions[champ] || []).filter((v) => v !== val);
+  masquerSuggestionDefinitivement(champ, val);
+
+  if (champ === 'matiere') {
+    state.draft.matieresChoisies = (state.draft.matieresChoisies || []).filter((v) => v !== val);
+    construireChipsMulti('grille-matiere', state.suggestions.matiere, state.draft.matieresChoisies, onToggleMatiere, 'matiere');
+    afficherBlocEssenceSiBesoin();
+  } else if (champ === 'origine') {
+    if (state.draft.origine === val) {
+      state.draft.origine = null;
+      el('bloc-origine-autre').hidden = true;
+    }
+    construireChips('grille-origine', state.suggestions.origine, state.draft.origine, onChoixOrigine, 'origine');
+  }
+  sauvegarderBrouillon();
 }
 
 // Champs texte : sauvegarde automatique du brouillon à chaque frappe
@@ -960,10 +1031,18 @@ function fusionnerSuggestions(data) {
   // matière "unique" (une seule à la fois) est une suggestion valable —
   // une nouvelle pastille ne doit apparaître qu'après une validation
   // explicite via "Autre" > "Ajouter à la liste".
+  // Une suggestion supprimée par le client (voir demanderSuppressionSuggestion)
+  // ne doit jamais réapparaître, même si le tableau la renvoie encore.
+  const masquees = chargerSuggestionsMasquees();
+  const matieresMasquees = masquees.matiere || [];
+  const originesMasquees = masquees.origine || [];
+
   const matieres = (data.matiere || [])
     .map((x) => x.valeur)
-    .filter((v) => v && v.indexOf(',') === -1);
-  const origines = (data.origine || []).map((x) => x.valeur);
+    .filter((v) => v && v.indexOf(',') === -1 && !matieresMasquees.includes(v));
+  const origines = (data.origine || [])
+    .map((x) => x.valeur)
+    .filter((v) => v && !originesMasquees.includes(v));
   state.suggestions.matiere = Array.from(new Set([...matieres, ...DEFAULT_MATIERES])).slice(0, MAX_SUGGESTIONS_AFFICHEES);
   state.suggestions.origine = Array.from(new Set([...origines, ...DEFAULT_ORIGINES])).slice(0, MAX_SUGGESTIONS_AFFICHEES);
 }
