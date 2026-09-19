@@ -13,7 +13,7 @@
 // prochain lancement de l'application.
 // ============================================================
 
-const VERSION = 'v4';
+const VERSION = 'v5';
 const CACHE_NAME = 'brocante-export-' + VERSION;
 
 const FICHIERS_A_METTRE_EN_CACHE = [
@@ -32,7 +32,19 @@ const FICHIERS_A_METTRE_EN_CACHE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(FICHIERS_A_METTRE_EN_CACHE))
+    caches.open(CACHE_NAME).then((cache) =>
+      // { cache: 'reload' } force un vrai aller-retour réseau pour CHAQUE
+      // fichier, en ignorant la copie que Chrome garde parfois dans son
+      // propre cache HTTP. Sans ça, une mise à jour de version ici peut
+      // recréer un nouveau cache d'application... rempli avec d'anciens
+      // fichiers récupérés depuis ce cache HTTP, et rien ne change jamais
+      // à l'écran malgré le changement de VERSION.
+      Promise.all(
+        FICHIERS_A_METTRE_EN_CACHE.map((url) =>
+          fetch(url, { cache: 'reload' }).then((reponse) => cache.put(url, reponse))
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
