@@ -100,7 +100,10 @@ function renderListeContainersExistants(containers) {
     btn.type = 'button';
     btn.className = 'btn-container-existant';
     btn.innerHTML = '<span>Container ' + c.letter + '</span><span class="compte">' + texteArticles(c.nb_articles) + '</span>';
-    btn.addEventListener('click', () => choisirLettreContainer(c.letter));
+    // On connaît déjà son nombre d'articles (affiché dans cette liste) :
+    // pas besoin de revérifier auprès du serveur, ce qui rendait ce tap
+    // lent (attente réseau) et donnait l'impression que rien ne se passait.
+    btn.addEventListener('click', () => choisirLettreContainer(c.letter, { exists: true, nb_articles: c.nb_articles }));
     conteneur.appendChild(btn);
   });
 }
@@ -122,16 +125,38 @@ el('btn-creer-container').addEventListener('click', () => {
   choisirLettreContainer(val);
 });
 
-async function choisirLettreContainer(lettre) {
-  let info = { exists: false, nb_articles: 0 };
-  try {
-    if (navigator.onLine) {
-      const rep = await apiCheckContainer(lettre);
-      if (rep && rep.status === 'success') info = rep.data;
+// Empêche de lancer plusieurs vérifications réseau en même temps si
+// l'utilisateur retape sur "Créer" en pensant que rien ne s'est passé
+// (le seul cas restant qui a besoin du réseau — voir infoConnue ci-dessous).
+let verificationContainerEnCours = false;
+
+async function choisirLettreContainer(lettre, infoConnue) {
+  let info = infoConnue || { exists: false, nb_articles: 0 };
+
+  // infoConnue est fourni quand on vient de la liste des containers
+  // existants (on connaît déjà son nombre d'articles, affiché juste avant) :
+  // dans ce cas on saute complètement l'appel réseau, qui rendait ce tap
+  // lent sur un réseau faible et sans aucun retour visuel entre-temps.
+  if (!infoConnue) {
+    if (verificationContainerEnCours) return;
+    verificationContainerEnCours = true;
+    const boutonCreer = el('btn-creer-container');
+    const texteOriginalBouton = boutonCreer.textContent;
+    boutonCreer.disabled = true;
+    boutonCreer.textContent = 'Vérification…';
+    try {
+      if (navigator.onLine) {
+        const rep = await apiCheckContainer(lettre);
+        if (rep && rep.status === 'success') info = rep.data;
+      }
+    } catch (e) {
+      // Hors-ligne ou serveur injoignable : on continue quand même,
+      // le serveur fera foi de toute façon à la synchronisation.
+    } finally {
+      verificationContainerEnCours = false;
+      boutonCreer.disabled = false;
+      boutonCreer.textContent = texteOriginalBouton;
     }
-  } catch (e) {
-    // Hors-ligne ou serveur injoignable : on continue quand même,
-    // le serveur fera foi de toute façon à la synchronisation.
   }
 
   el('confirm-container-titre').textContent = info.exists
