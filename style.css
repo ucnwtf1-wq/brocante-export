@@ -394,3 +394,46 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
   cursor: pointer;
   flex-shrink: 0;
 }
+
+/* ---------- Fenêtre de confirmation "maison" (remplace window.confirm) ---------- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 26, 23, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.modal-boite {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 22px;
+  max-width: 400px;
+  width: 100%;
+}
+.modal-texte {
+  white-space: pre-line;
+  margin: 0 0 20px;
+  font-size: 1.02rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.modal-boutons {
+  display: flex;
+  gap: 10px;
+}
+.modal-boutons button {
+  flex: 1;
+  margin: 0;
+}
+.modal-btn-annuler {
+  background: var(--border);
+  color: var(--text);
+}
+.modal-btn-confirmer {
+  background: var(--danger);
+  color: #ffffff;
+}

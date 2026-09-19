@@ -511,12 +511,59 @@ async function afficherListeArticles() {
 
 el('btn-liste-retour').addEventListener('click', () => rafraichirAccueil());
 
+// window.confirm() ne s'affiche pas de façon fiable dans une application
+// installée en plein écran (mode "standalone") sur certains téléphones
+// Android : la boîte native peut ne jamais apparaître, et la fonction
+// renvoie alors silencieusement "false" — on a ce comportement exact avec
+// le bouton supprimer qui semblait ne rien faire. On utilise donc notre
+// propre fenêtre de confirmation, qui fonctionne partout de la même façon.
+function confirmerPersonnalise(message) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const boite = document.createElement('div');
+    boite.className = 'modal-boite';
+
+    const texte = document.createElement('p');
+    texte.className = 'modal-texte';
+    texte.textContent = message;
+
+    const boutons = document.createElement('div');
+    boutons.className = 'modal-boutons';
+
+    const btnAnnuler = document.createElement('button');
+    btnAnnuler.type = 'button';
+    btnAnnuler.className = 'btn-mini modal-btn-annuler';
+    btnAnnuler.textContent = 'Annuler';
+
+    const btnConfirmer = document.createElement('button');
+    btnConfirmer.type = 'button';
+    btnConfirmer.className = 'btn-mini modal-btn-confirmer';
+    btnConfirmer.textContent = 'Supprimer';
+
+    boutons.appendChild(btnAnnuler);
+    boutons.appendChild(btnConfirmer);
+    boite.appendChild(texte);
+    boite.appendChild(boutons);
+    overlay.appendChild(boite);
+    document.body.appendChild(overlay);
+
+    function fermer(resultat) {
+      document.body.removeChild(overlay);
+      resolve(resultat);
+    }
+    btnAnnuler.addEventListener('click', () => fermer(false));
+    btnConfirmer.addEventListener('click', () => fermer(true));
+  });
+}
+
 async function supprimerArticle(article) {
   const label = (article.reference || '(sans référence)') + ' — ' + (article.designation || 'sans désignation');
   const avertissement = article.statutSync === 'envoye'
     ? 'Cet article a déjà été envoyé au tableau : le supprimer ici ne l\'enlèvera PAS du Google Sheet (il faudra effacer la ligne à la main sur le tableau si besoin).\n\n'
     : '';
-  const confirme = window.confirm(avertissement + 'Supprimer définitivement cet article du téléphone ?\n\n' + label);
+  const confirme = await confirmerPersonnalise(avertissement + 'Supprimer définitivement cet article du téléphone ?\n\n' + label);
   if (!confirme) return;
   await dbDeleteArticle(article.localId);
   await afficherListeArticles();
