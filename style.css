@@ -339,36 +339,14 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
   padding: 14px;
 }
 .panier-total { font-size: 1.15rem; margin-bottom: 10px; }
-.liste-pesees { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.pesee-chip {
-  padding: 8px 8px 8px 14px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-/* La valeur elle-même est cliquable pour la corriger (elle revient dans le
-   champ de saisie), plutôt que de devoir la supprimer puis tout retaper. */
-.pesee-valeur {
-  cursor: pointer;
-  text-decoration: underline dotted;
-  padding: 4px 2px;
-}
-.pesee-chip button {
-  border: none;
-  background: none;
-  color: var(--danger);
-  font-weight: 800;
-  font-size: 1.2rem;
-  cursor: pointer;
-  min-width: 36px;
-  min-height: 36px;
-}
-.ajout-pesee { display: flex; gap: 8px; }
-.ajout-pesee input { flex: 1; }
+
+/* Un champ de poids par colis (autant de lignes que "Nombre de colis") :
+   plus simple et plus fiable qu'une liste libre à ajouter/supprimer, et ça
+   colle exactement à la réalité physique (un poids par colis à peser). */
+.liste-pesees-colis { display: flex; flex-direction: column; gap: 8px; }
+.pesee-colis-ligne { display: flex; align-items: center; gap: 10px; }
+.pesee-colis-label { flex: 0 0 auto; min-width: 72px; font-weight: 600; color: var(--text-dim); }
+input.champ-pesee-colis { flex: 1; width: auto; }
 
 .toggle-periode { display: flex; gap: 8px; }
 .toggle-btn {

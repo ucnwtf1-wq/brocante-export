@@ -206,7 +206,7 @@ function creerBrouillonVide() {
     containerLetter: state.containerLetter,
     designation: '',
     nombreColis: 1,
-    matiereCategorie: null,
+    matieresChoisies: [],
     matiereAutre: '',
     essenceBois: null,
     essenceAutre: '',
@@ -331,8 +331,8 @@ function allerAuFormulaire() {
   el('champ-dim-l').value = state.draft.dimL || '';
   el('champ-dim-long').value = state.draft.dimLong || '';
 
-  construireChips('grille-matiere', state.suggestions.matiere, state.draft.matiereCategorie, onChoixMatiere);
-  el('bloc-matiere-autre').hidden = state.draft.matiereCategorie !== 'Autre';
+  construireChipsMulti('grille-matiere', state.suggestions.matiere, state.draft.matieresChoisies, onToggleMatiere);
+  el('bloc-matiere-autre').hidden = !(state.draft.matieresChoisies || []).includes('Autre');
   el('champ-matiere-autre').value = state.draft.matiereAutre || '';
   afficherBlocEssenceSiBesoin();
 
@@ -362,13 +362,21 @@ function allerAuFormulaire() {
 }
 
 function afficherBlocEssenceSiBesoin() {
-  const estBois = state.draft.matiereCategorie === 'Bois';
+  const estBois = (state.draft.matieresChoisies || []).includes('Bois');
   el('bloc-essence').hidden = !estBois;
 }
 
-function onChoixMatiere(val) {
-  state.draft.matiereCategorie = val;
-  el('bloc-matiere-autre').hidden = val !== 'Autre';
+// Un objet peut combiner plusieurs matières (ex : un meuble en bois avec un
+// plateau en marbre) : chaque pastille se coche/décoche indépendamment des
+// autres, au lieu de se remplacer l'une l'autre.
+function onToggleMatiere(val, estSelectionne) {
+  state.draft.matieresChoisies = state.draft.matieresChoisies || [];
+  if (estSelectionne) {
+    if (!state.draft.matieresChoisies.includes(val)) state.draft.matieresChoisies.push(val);
+  } else {
+    state.draft.matieresChoisies = state.draft.matieresChoisies.filter((v) => v !== val);
+  }
+  el('bloc-matiere-autre').hidden = !state.draft.matieresChoisies.includes('Autre');
   afficherBlocEssenceSiBesoin();
   sauvegarderBrouillon();
 }
@@ -403,10 +411,16 @@ function ajouterSuggestionLocale(champ, valeurBrute) {
 el('btn-ajouter-matiere-autre').addEventListener('click', () => {
   const val = ajouterSuggestionLocale('matiere', el('champ-matiere-autre').value);
   if (!val) return;
+  // La nouvelle pastille remplace la case "Autre" cochée, sans toucher aux
+  // autres matières déjà sélectionnées (ex : Bois + cette matière ajoutée).
+  state.draft.matieresChoisies = (state.draft.matieresChoisies || []).filter((v) => v !== 'Autre');
+  if (!state.draft.matieresChoisies.includes(val)) state.draft.matieresChoisies.push(val);
   state.draft.matiereAutre = '';
-  construireChips('grille-matiere', state.suggestions.matiere, val, onChoixMatiere);
-  onChoixMatiere(val);
   el('champ-matiere-autre').value = '';
+  el('bloc-matiere-autre').hidden = true;
+  construireChipsMulti('grille-matiere', state.suggestions.matiere, state.draft.matieresChoisies, onToggleMatiere);
+  afficherBlocEssenceSiBesoin();
+  sauvegarderBrouillon();
 });
 
 el('btn-ajouter-origine-autre').addEventListener('click', () => {
@@ -437,6 +451,28 @@ function construireChips(idGrille, valeurs, valeurChoisie, onChoix) {
   });
 }
 
+// Variante à sélection multiple (plusieurs pastilles cochables en même
+// temps) : utilisée pour la matière, un objet pouvant combiner plusieurs
+// matières (ex : bois + marbre).
+function construireChipsMulti(idGrille, valeurs, valeursChoisies, onToggle) {
+  const grille = el(idGrille);
+  grille.innerHTML = '';
+  const toutes = [...valeurs];
+  if (!toutes.includes('Autre')) toutes.push('Autre');
+  toutes.forEach((val) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    const estChoisi = (valeursChoisies || []).includes(val);
+    chip.className = 'chip' + (estChoisi ? ' selected' : '');
+    chip.textContent = val;
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('selected');
+      onToggle(val, chip.classList.contains('selected'));
+    });
+    grille.appendChild(chip);
+  });
+}
+
 // Champs texte : sauvegarde automatique du brouillon à chaque frappe
 ['champ-designation', 'champ-matiere-autre', 'champ-essence-autre', 'champ-origine-autre',
   'champ-prix', 'champ-dim-h', 'champ-dim-l', 'champ-dim-long',
@@ -462,67 +498,74 @@ el('btn-colis-moins').addEventListener('click', () => {
   el('champ-colis').value = v;
   state.draft.nombreColis = v;
   sauvegarderBrouillon();
+  rafraichirPanierPoids();
 });
 el('btn-colis-plus').addEventListener('click', () => {
   const v = (parseInt(el('champ-colis').value, 10) || 0) + 1;
   el('champ-colis').value = v;
   state.draft.nombreColis = v;
   sauvegarderBrouillon();
+  rafraichirPanierPoids();
 });
 el('champ-colis').addEventListener('input', () => {
   state.draft.nombreColis = parseInt(el('champ-colis').value, 10) || 0;
   sauvegarderBrouillon();
+  rafraichirPanierPoids();
 });
 
-// ---- Panier de pesées ----
+// ---- Poids : un champ par colis ----
+// Autant de champs "poids" que de colis déclarés, pour que chaque colis
+// soit pesé individuellement (ex : 2 colis = 2 champs) plutôt qu'une liste
+// libre à ajouter/supprimer à la main.
 
-function rafraichirPanierPoids() {
-  const liste = el('liste-pesees');
-  liste.innerHTML = '';
-  (state.draft.peseesKg || []).forEach((val, idx) => {
-    const chip = document.createElement('div');
-    chip.className = 'pesee-chip';
+function peseesValides() {
+  return (state.draft.peseesKg || [])
+    .map((v) => parseFloat(v))
+    .filter((v) => !isNaN(v) && v > 0);
+}
 
-    // Taper sur la valeur elle-même permet de la corriger : elle repasse
-    // dans le champ de saisie du dessous, prête à être retapée puis
-    // ré-ajoutée — au lieu de devoir supprimer puis retaper de zéro.
-    const valeur = document.createElement('span');
-    valeur.className = 'pesee-valeur';
-    valeur.textContent = val + ' kg';
-    valeur.addEventListener('click', () => {
-      el('champ-nouvelle-pesee').value = val;
-      state.draft.peseesKg.splice(idx, 1);
-      sauvegarderBrouillon();
-      rafraichirPanierPoids();
-      el('champ-nouvelle-pesee').focus();
-    });
-
-    const btnSuppr = document.createElement('button');
-    btnSuppr.textContent = '×';
-    btnSuppr.addEventListener('click', () => {
-      state.draft.peseesKg.splice(idx, 1);
-      sauvegarderBrouillon();
-      rafraichirPanierPoids();
-    });
-    chip.appendChild(valeur);
-    chip.appendChild(btnSuppr);
-    liste.appendChild(chip);
-  });
-  const total = (state.draft.peseesKg || []).reduce((a, b) => a + Number(b), 0);
+function majPoidsTotal() {
+  const total = peseesValides().reduce((a, b) => a + b, 0);
   el('poids-total').textContent = Math.round(total * 100) / 100;
 }
 
-el('btn-ajouter-pesee').addEventListener('click', () => {
-  const champ = el('champ-nouvelle-pesee');
-  const v = parseFloat(champ.value);
-  if (!isNaN(v) && v > 0) {
-    state.draft.peseesKg = state.draft.peseesKg || [];
-    state.draft.peseesKg.push(v);
-    champ.value = '';
-    sauvegarderBrouillon();
-    rafraichirPanierPoids();
-  }
-});
+function rafraichirPanierPoids() {
+  const nb = Math.max(1, state.draft.nombreColis || 1);
+  const poids = state.draft.peseesKg || [];
+  while (poids.length < nb) poids.push('');
+  while (poids.length > nb) poids.pop();
+  state.draft.peseesKg = poids;
+
+  const liste = el('liste-pesees');
+  liste.innerHTML = '';
+  poids.forEach((val, idx) => {
+    const ligne = document.createElement('div');
+    ligne.className = 'pesee-colis-ligne';
+
+    const label = document.createElement('span');
+    label.className = 'pesee-colis-label';
+    label.textContent = nb > 1 ? 'Colis ' + (idx + 1) : 'Poids';
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.inputMode = 'decimal';
+    input.step = '0.01';
+    input.min = '0';
+    input.placeholder = 'Ex : 37';
+    input.className = 'champ-pesee-colis';
+    input.value = val === '' || val == null ? '' : val;
+    input.addEventListener('input', () => {
+      state.draft.peseesKg[idx] = input.value;
+      sauvegarderBrouillon();
+      majPoidsTotal();
+    });
+
+    ligne.appendChild(label);
+    ligne.appendChild(input);
+    liste.appendChild(ligne);
+  });
+  majPoidsTotal();
+}
 
 // ---- Période ----
 
@@ -538,14 +581,22 @@ el('btn-periode-fourchette').addEventListener('click', () => basculerPeriode('fo
 
 // ---------------- Récapitulatif ----------------
 
+// Combine toutes les matières cochées en une seule chaîne (ex : "CHÊNE,
+// MARBRE") — "Bois" est remplacé par l'essence précisée quand elle existe,
+// et "Autre" par le texte libre tapé à côté.
 function calculerMatiereFinale() {
-  let base = state.draft.matiereCategorie === 'Autre' ? state.draft.matiereAutre : state.draft.matiereCategorie;
-  base = (base || '').trim();
-  if (state.draft.matiereCategorie === 'Bois' && state.draft.essenceBois) {
-    const essence = state.draft.essenceBois === 'Autre' ? state.draft.essenceAutre : state.draft.essenceBois;
-    if (essence && essence.trim()) return essence.trim().toUpperCase();
-  }
-  return base.toUpperCase();
+  const choix = state.draft.matieresChoisies || [];
+  const morceaux = choix.map((val) => {
+    if (val === 'Bois') {
+      const essence = state.draft.essenceBois === 'Autre' ? state.draft.essenceAutre : state.draft.essenceBois;
+      return (essence && essence.trim()) ? essence.trim() : 'Bois';
+    }
+    if (val === 'Autre') {
+      return (state.draft.matiereAutre || '').trim();
+    }
+    return val;
+  }).filter((v) => v);
+  return Array.from(new Set(morceaux)).join(', ').toUpperCase();
 }
 
 function calculerOrigineFinale() {
@@ -585,7 +636,7 @@ el('btn-voir-recap').addEventListener('click', () => {
 
   const matiereFinale = calculerMatiereFinale();
   const origineFinale = calculerOrigineFinale();
-  const totalPoids = (state.draft.peseesKg || []).reduce((a, b) => a + Number(b), 0);
+  const totalPoids = peseesValides().reduce((a, b) => a + b, 0);
 
   const lignes = [
     ['Désignation', state.draft.designation || '(vide)'],
@@ -648,7 +699,7 @@ el('btn-valider-article').addEventListener('click', async () => {
     nombreColis: state.draft.nombreColis || 0,
     matiereFinale: calculerMatiereFinale(),
     origine: calculerOrigineFinale(),
-    peseesKg: state.draft.peseesKg || [],
+    peseesKg: peseesValides(),
     prixEur: parseFloat(state.draft.prixEur) || 0,
     periode: state.draft.periode,
     dimensions: calculerDimensionsFinale(),
