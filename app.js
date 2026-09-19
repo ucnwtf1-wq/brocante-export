@@ -501,13 +501,27 @@ async function afficherListeArticles() {
         '<div class="article-designation">' + (a.reference || '(réf. à venir)') + ' — ' + (a.designation || '(sans désignation)') + '</div>' +
         '<div class="article-meta">' + (a.matiereFinale || '') + '</div>' +
       '</div>' +
-      '<span class="badge ' + badgeClasse + '">' + badgeTexte + '</span>';
+      '<span class="badge ' + badgeClasse + '">' + badgeTexte + '</span>' +
+      '<button class="btn-supprimer-article" title="Supprimer">🗑</button>';
+    carte.querySelector('.btn-supprimer-article').addEventListener('click', () => supprimerArticle(a));
     conteneur.appendChild(carte);
   });
   afficherEcran('screen-list');
 }
 
 el('btn-liste-retour').addEventListener('click', () => rafraichirAccueil());
+
+async function supprimerArticle(article) {
+  const label = (article.reference || '(sans référence)') + ' — ' + (article.designation || 'sans désignation');
+  const avertissement = article.statutSync === 'envoye'
+    ? 'Cet article a déjà été envoyé au tableau : le supprimer ici ne l\'enlèvera PAS du Google Sheet (il faudra effacer la ligne à la main sur le tableau si besoin).\n\n'
+    : '';
+  const confirme = window.confirm(avertissement + 'Supprimer définitivement cet article du téléphone ?\n\n' + label);
+  if (!confirme) return;
+  await dbDeleteArticle(article.localId);
+  await afficherListeArticles();
+  rafraichirBandeau();
+}
 
 // ---------------- Bandeau d'état de synchronisation ----------------
 

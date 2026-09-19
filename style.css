@@ -384,3 +384,13 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
 .badge.envoye { background: var(--success-bg); color: var(--success); }
 .badge.en_attente { background: var(--border); color: var(--text-dim); }
 .badge.echec_a_corriger { background: var(--warning-bg); color: var(--warning); }
+
+.btn-supprimer-article {
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-size: 1.3rem;
+  padding: 6px 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
