@@ -33,6 +33,13 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   font-size: 18px;
   line-height: 1.4;
+  /* Empêche le geste "tirer vers le bas pour recharger" du navigateur
+     (Chrome Android). Sans ça, un tir accidentel de l'écran vers le bas
+     recharge toute l'application et fait perdre l'article en cours de
+     création. L'app gère elle-même son actualisation (bouton "online",
+     synchronisation en tâche de fond) : ce rechargement natif du
+     navigateur n'est jamais nécessaire ici. */
+  overscroll-behavior-y: contain;
 }
 
 .screen {
