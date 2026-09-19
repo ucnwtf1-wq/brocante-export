@@ -48,6 +48,23 @@ async function dbPutArticle(article) {
   });
 }
 
+/**
+ * Supprime un article DU TÉLÉPHONE UNIQUEMENT. Si l'article avait déjà
+ * été envoyé au Google Sheet, sa ligne reste dans le tableau (elle n'est
+ * pas supprimée à distance) — voir l'avertissement affiché à l'écran
+ * avant la suppression.
+ */
+async function dbDeleteArticle(localId) {
+  const db = await getDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_ARTICLES, 'readwrite');
+    tx.objectStore(STORE_ARTICLES).delete(localId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}
+
 async function dbGetArticle(localId) {
   const db = await getDb();
   return new Promise((resolve, reject) => {
