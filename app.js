@@ -12,6 +12,12 @@ const CONTAINERS_LISTE_KEY = 'containers_liste_cache';
 
 const el = (id) => document.getElementById(id);
 
+// Accord simple singulier/pluriel pour "article(s)", utilisé à plusieurs
+// endroits (accueil, liste des containers, confirmation de container).
+function texteArticles(n) {
+  return n + ' ' + (n === 1 ? 'article' : 'articles');
+}
+
 const state = {
   containerLetter: localStorage.getItem(CONTAINER_KEY) || null,
   draft: null,
@@ -39,7 +45,7 @@ async function rafraichirAccueil() {
     return;
   }
   const counts = await dbCountByStatus(state.containerLetter);
-  el('home-count-total').textContent = counts.total;
+  el('home-count-total').textContent = texteArticles(counts.total);
   afficherEcran('screen-home');
 }
 
@@ -57,6 +63,10 @@ el('btn-nouveau-container').addEventListener('click', () => afficherEcranContain
 
 async function afficherEcranContainer() {
   el('champ-nouveau-container').value = '';
+  // Au tout premier lancement (aucun container choisi), il n'y a nulle
+  // part où "annuler" — on masque donc ce bouton pour ne pas donner
+  // l'impression que l'app est bloquée quand il ne se passe rien au tap.
+  el('btn-annuler-container').hidden = !state.containerLetter;
   afficherEcran('screen-container');
   renderListeContainersExistants(chargerListeContainersDepuisCache());
 
@@ -89,7 +99,7 @@ function renderListeContainersExistants(containers) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-container-existant';
-    btn.innerHTML = '<span>Container ' + c.letter + '</span><span class="compte">' + c.nb_articles + ' article(s)</span>';
+    btn.innerHTML = '<span>Container ' + c.letter + '</span><span class="compte">' + texteArticles(c.nb_articles) + '</span>';
     btn.addEventListener('click', () => choisirLettreContainer(c.letter));
     conteneur.appendChild(btn);
   });
@@ -128,7 +138,7 @@ async function choisirLettreContainer(lettre) {
     ? 'Continuer ce container ?'
     : 'Créer le container ' + lettre + ' ?';
   el('confirm-container-texte').textContent = info.exists
-    ? 'Le container ' + lettre + ' contient déjà ' + info.nb_articles + ' article(s).'
+    ? 'Le container ' + lettre + ' contient déjà ' + texteArticles(info.nb_articles) + '.'
     : 'Un nouveau container vide va être créé.';
 
   el('btn-confirmer-container').onclick = () => {
@@ -151,7 +161,18 @@ function demarrerNouvelArticle() {
   } else {
     state.draft = creerBrouillonVide();
   }
+  majBandeauxContainer();
   restaurerEcranPhoto();
+}
+
+// Rappel discret du container en cours sur les écrans photo/formulaire/récap :
+// utile pour quelqu'un qui gère plusieurs containers dans la même journée et
+// pourrait sinon perdre le fil de celui en cours de remplissage.
+function majBandeauxContainer() {
+  const lettre = state.containerLetter || '-';
+  el('photo-lettre-actif').textContent = lettre;
+  el('form-lettre-actif').textContent = lettre;
+  el('recap-lettre-actif').textContent = lettre;
 }
 
 function creerBrouillonVide() {
@@ -195,10 +216,15 @@ function restaurerEcranPhoto() {
     el('photo-apercu').hidden = false;
     el('photo-placeholder').hidden = true;
     el('btn-photo-suivant').hidden = false;
+    // Une fois une photo prise, ce bouton la garde quand même (il ne
+    // supprime rien) : on évite donc de dire "sans photo", qui laisserait
+    // croire qu'elle va être perdue.
+    el('btn-sans-photo').textContent = 'Continuer';
   } else {
     el('photo-apercu').hidden = true;
     el('photo-placeholder').hidden = false;
     el('btn-photo-suivant').hidden = true;
+    el('btn-sans-photo').textContent = 'Continuer sans photo';
   }
   afficherEcran('screen-photo');
 }
@@ -216,6 +242,7 @@ el('photo-input').addEventListener('change', async () => {
     el('photo-apercu').hidden = false;
     el('photo-placeholder').hidden = true;
     el('btn-photo-suivant').hidden = false;
+    el('btn-sans-photo').textContent = 'Continuer';
   } catch (e) {
     alert("La photo n'a pas pu être utilisée, vous pouvez continuer sans elle ou réessayer.");
   }
@@ -353,7 +380,10 @@ function construireChips(idGrille, valeurs, valeurChoisie, onChoix) {
 });
 
 el('btn-colis-moins').addEventListener('click', () => {
-  const v = Math.max(0, (parseInt(el('champ-colis').value, 10) || 0) - 1);
+  // Un objet catalogué représente toujours au moins un colis — on ne
+  // laisse jamais retomber à 0 par un appui de trop (mains sales, geste
+  // pressé), ce qui passerait inaperçu jusqu'au tableau final.
+  const v = Math.max(1, (parseInt(el('champ-colis').value, 10) || 1) - 1);
   el('champ-colis').value = v;
   state.draft.nombreColis = v;
   sauvegarderBrouillon();
@@ -377,7 +407,21 @@ function rafraichirPanierPoids() {
   (state.draft.peseesKg || []).forEach((val, idx) => {
     const chip = document.createElement('div');
     chip.className = 'pesee-chip';
-    chip.innerHTML = '<span>' + val + ' kg</span>';
+
+    // Taper sur la valeur elle-même permet de la corriger : elle repasse
+    // dans le champ de saisie du dessous, prête à être retapée puis
+    // ré-ajoutée — au lieu de devoir supprimer puis retaper de zéro.
+    const valeur = document.createElement('span');
+    valeur.className = 'pesee-valeur';
+    valeur.textContent = val + ' kg';
+    valeur.addEventListener('click', () => {
+      el('champ-nouvelle-pesee').value = val;
+      state.draft.peseesKg.splice(idx, 1);
+      sauvegarderBrouillon();
+      rafraichirPanierPoids();
+      el('champ-nouvelle-pesee').focus();
+    });
+
     const btnSuppr = document.createElement('button');
     btnSuppr.textContent = '×';
     btnSuppr.addEventListener('click', () => {
@@ -385,6 +429,7 @@ function rafraichirPanierPoids() {
       sauvegarderBrouillon();
       rafraichirPanierPoids();
     });
+    chip.appendChild(valeur);
     chip.appendChild(btnSuppr);
     liste.appendChild(chip);
   });
@@ -460,7 +505,10 @@ el('btn-voir-recap').addEventListener('click', () => {
     ['Origine', origineFinale || '(non précisée)'],
     ['Nombre de colis', state.draft.nombreColis],
     ['Poids total', Math.round(totalPoids * 100) / 100 + ' kg'],
-    ['Prix d\'achat', (state.draft.prixEur || 0) + ' €'],
+    // Un prix vide reste visible comme tel plutôt que d'afficher "0 €" en
+    // silence — ça évite qu'un oubli de prix passe totalement inaperçu
+    // jusqu'au tableau final.
+    ['Prix d\'achat', state.draft.prixEur ? state.draft.prixEur + ' €' : '⚠ Prix non renseigné'],
     ['Période', texteRecapPeriode(state.draft.periode)],
     ['Dimensions', state.draft.dimensions || '(non précisées)']
   ];
@@ -477,7 +525,11 @@ el('btn-voir-recap').addEventListener('click', () => {
     const ligne = document.createElement('div');
     ligne.className = 'recap-ligne';
     ligne.innerHTML = '<span>' + label + '</span><span class="valeur"></span>';
-    ligne.querySelector('.valeur').textContent = valeur;
+    const valeurEl = ligne.querySelector('.valeur');
+    valeurEl.textContent = valeur;
+    if (typeof valeur === 'string' && valeur.indexOf('⚠') === 0) {
+      valeurEl.classList.add('valeur-alerte');
+    }
     conteneur.appendChild(ligne);
   });
 
@@ -485,7 +537,14 @@ el('btn-voir-recap').addEventListener('click', () => {
 });
 
 el('btn-modifier-article').addEventListener('click', () => allerAuFormulaire());
-el('btn-annuler-form').addEventListener('click', () => {
+el('btn-annuler-form').addEventListener('click', async () => {
+  // Abandonner ici fait perdre la photo et tout le formulaire déjà rempli —
+  // c'est potentiellement plus destructeur qu'une suppression dans la liste
+  // (qui, elle, demande déjà une confirmation) : on demande donc la même
+  // confirmation ici, pour éviter qu'un tap accidentel (mains sales, geste
+  // pressé) ne fasse tout perdre sans recours.
+  const confirme = await confirmerPersonnalise('Abandonner cet article et sa photo ?\n\nCe qui a déjà été rempli sera perdu.');
+  if (!confirme) return;
   effacerBrouillon();
   state.draft = null;
   rafraichirAccueil();
@@ -544,14 +603,22 @@ async function afficherListeArticles() {
       ? '<img src="' + a.photoBase64 + '">'
       : '<div class="article-placeholder">📦</div>';
     const badgeTexte = a.statutSync === 'envoye' ? '✔✔ Reçu au bureau'
-      : a.statutSync === 'echec_a_corriger' ? '⚠ À corriger'
+      : a.statutSync === 'echec_a_corriger' ? '⚠ Problème'
       : '✔ Enregistré, en attente';
     const badgeClasse = a.statutSync === 'envoye' ? 'envoye'
       : a.statutSync === 'echec_a_corriger' ? 'echec_a_corriger' : 'en_attente';
+    // Un article "à corriger" affichait juste un badge d'alerte sans dire
+    // pourquoi ni quoi faire : on montre maintenant la raison exacte
+    // donnée par le serveur, avec une indication claire de la marche à
+    // suivre (le supprimer puis le resaisir correctement).
+    const raisonHtml = (a.statutSync === 'echec_a_corriger')
+      ? '<div class="article-erreur">' + (a.derniereErreur || 'Cet article n\'a pas pu être envoyé.') + ' Supprimez-le puis resaisissez-le avec les bonnes informations.</div>'
+      : '';
     carte.innerHTML = img +
       '<div class="article-info">' +
         '<div class="article-designation">' + (a.reference || '(réf. à venir)') + ' — ' + (a.designation || '(sans désignation)') + '</div>' +
         '<div class="article-meta">' + (a.matiereFinale || '') + '</div>' +
+        raisonHtml +
       '</div>' +
       '<span class="badge ' + badgeClasse + '">' + badgeTexte + '</span>' +
       '<button class="btn-supprimer-article" title="Supprimer">🗑</button>';
@@ -613,7 +680,7 @@ function confirmerPersonnalise(message) {
 async function supprimerArticle(article) {
   const label = (article.reference || '(sans référence)') + ' — ' + (article.designation || 'sans désignation');
   const avertissement = article.statutSync === 'envoye'
-    ? 'Cet article a déjà été envoyé au tableau : le supprimer ici ne l\'enlèvera PAS du Google Sheet (il faudra effacer la ligne à la main sur le tableau si besoin).\n\n'
+    ? 'Cet article a déjà été envoyé au bureau. Le supprimer ici ne l\'effacera pas du tableau : il faudra l\'effacer là-bas aussi, à la main, si besoin.\n\n'
     : '';
   const confirme = await confirmerPersonnalise(avertissement + 'Supprimer définitivement cet article du téléphone ?\n\n' + label);
   if (!confirme) return;
@@ -672,11 +739,18 @@ async function chargerSuggestions() {
   } catch (e) { /* hors-ligne ou serveur indisponible : on garde le cache */ }
 }
 
+// Nombre maximum de chips affichées par liste (matière/origine) : au-delà,
+// l'écran deviendrait trop chargé pour rester rapide à utiliser au doigt.
+// Le serveur trie déjà les valeurs par fréquence d'usage (voir
+// handleGetSuggestions côté Code.gs), donc ne garder que les premières
+// revient à garder les plus utilisées.
+const MAX_SUGGESTIONS_AFFICHEES = 12;
+
 function fusionnerSuggestions(data) {
   const matieres = (data.matiere || []).map((x) => x.valeur);
   const origines = (data.origine || []).map((x) => x.valeur);
-  state.suggestions.matiere = Array.from(new Set([...matieres, ...DEFAULT_MATIERES]));
-  state.suggestions.origine = Array.from(new Set([...origines, ...DEFAULT_ORIGINES]));
+  state.suggestions.matiere = Array.from(new Set([...matieres, ...DEFAULT_MATIERES])).slice(0, MAX_SUGGESTIONS_AFFICHEES);
+  state.suggestions.origine = Array.from(new Set([...origines, ...DEFAULT_ORIGINES])).slice(0, MAX_SUGGESTIONS_AFFICHEES);
 }
 
 // ---------------- Démarrage ----------------
@@ -693,6 +767,7 @@ function fusionnerSuggestions(data) {
   const brouillon = chargerBrouillon();
   if (brouillon && state.containerLetter) {
     state.draft = brouillon;
+    majBandeauxContainer();
     restaurerEcranPhoto();
   } else {
     rafraichirAccueil();

@@ -18,12 +18,12 @@
 <section id="screen-home" class="screen">
   <div class="home-header">
     <div class="home-container-label">Container <span id="home-lettre">-</span></div>
-    <div class="home-count"><span id="home-count-total">0</span> article(s)</div>
+    <div class="home-count"><span id="home-count-total">0 article</span></div>
   </div>
   <button id="btn-ajouter" class="btn-geant">+ Ajouter un article</button>
   <div class="home-links">
-    <button id="btn-voir-articles" class="lien">Voir les articles de ce container</button>
-    <button id="btn-nouveau-container" class="lien">Nouveau container</button>
+    <button id="btn-voir-articles" class="lien-secondaire">Voir les articles de ce container</button>
+    <button id="btn-nouveau-container" class="lien-secondaire">Changer de container</button>
   </div>
 </section>
 
@@ -48,12 +48,13 @@
 <section id="screen-confirm-container" class="screen" hidden>
   <h1 id="confirm-container-titre">Créer le container ?</h1>
   <p id="confirm-container-texte" class="texte-info"></p>
-  <button id="btn-confirmer-container" class="btn-geant">Oui, continuer</button>
+  <button id="btn-confirmer-container" class="btn-geant btn-secondaire">Oui, continuer</button>
   <button id="btn-annuler-confirm-container" class="lien">Annuler</button>
 </section>
 
 <!-- ===================== PHOTO ===================== -->
 <section id="screen-photo" class="screen" hidden>
+  <div class="bandeau-container-actif">Container <span id="photo-lettre-actif">-</span></div>
   <h1>Photo de l'article</h1>
   <div class="photo-zone">
     <img id="photo-apercu" hidden>
@@ -67,62 +68,76 @@
 
 <!-- ===================== FORMULAIRE ===================== -->
 <section id="screen-form" class="screen" hidden>
+  <div class="bandeau-container-actif">Container <span id="form-lettre-actif">-</span></div>
+
   <div class="form-photo-mini">
     <img id="form-photo-mini-img" hidden>
   </div>
 
-  <label class="label-champ">Désignation</label>
-  <textarea id="champ-designation" rows="2" placeholder="Ex : Commode Louis XV" autocapitalize="sentences"></textarea>
+  <div class="bloc-carte">
+    <p class="titre-bloc">Description de l'objet</p>
 
-  <label class="label-champ">Matière</label>
-  <div id="grille-matiere" class="grille-chips"></div>
-  <input type="text" id="champ-matiere-autre" class="champ-texte-libre" placeholder="Précisez la matière" hidden>
+    <label class="label-champ">Désignation</label>
+    <textarea id="champ-designation" rows="2" placeholder="Ex : Commode Louis XV" autocapitalize="sentences"></textarea>
 
-  <div id="bloc-essence" hidden>
-    <label class="label-champ">Essence de bois</label>
-    <div id="grille-essence" class="grille-chips"></div>
-    <input type="text" id="champ-essence-autre" class="champ-texte-libre" placeholder="Précisez l'essence" hidden>
+    <label class="label-champ">Matière</label>
+    <div id="grille-matiere" class="grille-chips"></div>
+    <input type="text" id="champ-matiere-autre" class="champ-texte-libre" placeholder="Précisez la matière" hidden>
+
+    <div id="bloc-essence" hidden>
+      <label class="label-champ">Essence de bois</label>
+      <div id="grille-essence" class="grille-chips"></div>
+      <input type="text" id="champ-essence-autre" class="champ-texte-libre" placeholder="Précisez l'essence" hidden>
+    </div>
+
+    <label class="label-champ">Origine</label>
+    <div id="grille-origine" class="grille-chips"></div>
+    <input type="text" id="champ-origine-autre" class="champ-texte-libre" placeholder="Précisez le pays" hidden>
   </div>
 
-  <label class="label-champ">Origine</label>
-  <div id="grille-origine" class="grille-chips"></div>
-  <input type="text" id="champ-origine-autre" class="champ-texte-libre" placeholder="Précisez le pays" hidden>
+  <div class="bloc-carte">
+    <p class="titre-bloc">Quantité et poids</p>
 
-  <label class="label-champ">Nombre de colis</label>
-  <div class="stepper">
-    <button id="btn-colis-moins" class="stepper-btn">–</button>
-    <input type="number" id="champ-colis" class="stepper-valeur" inputmode="numeric" value="1" min="0">
-    <button id="btn-colis-plus" class="stepper-btn">+</button>
-  </div>
+    <label class="label-champ">Nombre de colis</label>
+    <div class="stepper">
+      <button id="btn-colis-moins" class="stepper-btn">–</button>
+      <input type="number" id="champ-colis" class="stepper-valeur" inputmode="numeric" value="1" min="1">
+      <button id="btn-colis-plus" class="stepper-btn">+</button>
+    </div>
 
-  <label class="label-champ">Poids</label>
-  <div class="panier-poids">
-    <div class="panier-total">Poids total : <strong><span id="poids-total">0</span> kg</strong></div>
-    <div id="liste-pesees" class="liste-pesees"></div>
-    <div class="ajout-pesee">
-      <input type="number" id="champ-nouvelle-pesee" inputmode="decimal" placeholder="ex : 37" step="0.01">
-      <button id="btn-ajouter-pesee" class="btn-mini">+ Ajouter</button>
+    <label class="label-champ">Poids</label>
+    <div class="panier-poids">
+      <div class="panier-total">Poids total : <strong><span id="poids-total">0</span> kg</strong></div>
+      <div id="liste-pesees" class="liste-pesees"></div>
+      <div class="ajout-pesee">
+        <input type="number" id="champ-nouvelle-pesee" inputmode="decimal" placeholder="Ex : 37" step="0.01">
+        <button id="btn-ajouter-pesee" class="btn-mini">+ Ajouter ce poids</button>
+      </div>
     </div>
   </div>
 
-  <label class="label-champ">Prix d'achat (€)</label>
-  <input type="number" id="champ-prix" inputmode="decimal" step="0.01" placeholder="0">
+  <div class="bloc-carte">
+    <p class="titre-bloc">Valeur et période</p>
 
-  <label class="label-champ">Période</label>
-  <div class="toggle-periode">
-    <button id="btn-periode-annee" class="toggle-btn active">Année précise</button>
-    <button id="btn-periode-fourchette" class="toggle-btn">Période (de...à...)</button>
-  </div>
-  <div id="periode-annee-bloc">
-    <input type="number" id="champ-annee" inputmode="numeric" placeholder="Ex : 1900">
-  </div>
-  <div id="periode-fourchette-bloc" hidden class="row-2">
-    <input type="number" id="champ-annee-de" inputmode="numeric" placeholder="De">
-    <input type="number" id="champ-annee-a" inputmode="numeric" placeholder="À">
-  </div>
+    <label class="label-champ">Prix d'achat (€)</label>
+    <input type="number" id="champ-prix" inputmode="decimal" step="0.01" min="0" placeholder="0">
 
-  <label class="label-champ">Dimensions</label>
-  <input type="text" id="champ-dimensions" placeholder="Ex : H 46 / L 57 / P 69">
+    <label class="label-champ">Période</label>
+    <div class="toggle-periode">
+      <button id="btn-periode-annee" class="toggle-btn active">Année précise</button>
+      <button id="btn-periode-fourchette" class="toggle-btn">Période (de...à...)</button>
+    </div>
+    <div id="periode-annee-bloc">
+      <input type="number" id="champ-annee" inputmode="numeric" placeholder="Ex : 1900">
+    </div>
+    <div id="periode-fourchette-bloc" hidden class="row-2">
+      <input type="number" id="champ-annee-de" inputmode="numeric" placeholder="De">
+      <input type="number" id="champ-annee-a" inputmode="numeric" placeholder="À">
+    </div>
+
+    <label class="label-champ">Dimensions</label>
+    <input type="text" id="champ-dimensions" placeholder="Ex : H 46 / L 57 / P 69">
+  </div>
 
   <button id="btn-voir-recap" class="btn-geant">Voir le récapitulatif</button>
   <button id="btn-annuler-form" class="lien">Annuler cet article</button>
@@ -130,9 +145,10 @@
 
 <!-- ===================== RÉCAPITULATIF ===================== -->
 <section id="screen-recap" class="screen" hidden>
+  <div class="bandeau-container-actif">Container <span id="recap-lettre-actif">-</span></div>
   <h1>Vérifiez avant d'enregistrer</h1>
   <div id="recap-contenu" class="recap-contenu"></div>
-  <button id="btn-valider-article" class="btn-geant">Valider l'article</button>
+  <button id="btn-valider-article" class="btn-geant btn-secondaire">Valider l'article</button>
   <button id="btn-modifier-article" class="lien">Modifier</button>
 </section>
 
@@ -140,7 +156,7 @@
 <section id="screen-confirmation" class="screen" hidden>
   <div class="confirmation-coche">✔</div>
   <h1>Article enregistré</h1>
-  <p class="texte-info">Il est en sécurité sur votre téléphone et part vers le tableau dès que possible.</p>
+  <p class="texte-info">Il est en sécurité sur votre téléphone et part vers le bureau dès que possible.</p>
   <button id="btn-article-suivant" class="btn-geant">Article suivant</button>
   <button id="btn-retour-accueil" class="lien">Retour à l'accueil</button>
 </section>

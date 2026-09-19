@@ -13,7 +13,7 @@
 // prochain lancement de l'application.
 // ============================================================
 
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE_NAME = 'brocante-export-' + VERSION;
 
 const FICHIERS_A_METTRE_EN_CACHE = [

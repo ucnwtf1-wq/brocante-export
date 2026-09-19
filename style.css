@@ -13,7 +13,11 @@
   --accent-text: #ffffff;
   --success: #2e7d46;
   --success-bg: #e3f3e6;
-  --warning: #b3651f;
+  /* Assombri par rapport à la version d'origine (#b3651f) : utilisé
+     désormais en fond plein avec du texte blanc (bandeau, badge), il
+     fallait une teinte plus foncée pour garder un bon contraste
+     lisible en plein soleil. */
+  --warning: #8a4413;
   --warning-bg: #fbecd9;
   --danger: #a4331f;
   --radius: 14px;
@@ -85,6 +89,26 @@ h1 {
   text-decoration: underline;
 }
 
+/* Pour une action secondaire mais utile à trouver facilement (pas juste
+   "annuler" — voir .lien ci-dessus, réservé aux actions d'abandon) : un
+   peu plus visible qu'un simple lien souligné, sans rivaliser avec le
+   bouton principal .btn-geant de l'écran. */
+.lien-secondaire {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 14px;
+  margin: 8px 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.lien-secondaire:active { background: var(--bg); }
+
 .btn-mini {
   padding: 12px 16px;
   font-size: 1rem;
@@ -113,7 +137,22 @@ h1 {
 }
 .home-links { margin-top: 30px; }
 
+/* ---------- Rappel du container actif (photo / formulaire / récap) ---------- */
+
+.bandeau-container-actif {
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text-dim);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
 /* ---------- Bandeau de synchronisation ---------- */
+/* Fond plein + texte blanc plutôt que texte coloré sur fond clair :
+   bien plus lisible en plein soleil, et c'est le seul message toujours
+   visible qui dit si les articles sont bien partis ou non. */
 
 .banner {
   position: sticky;
@@ -121,16 +160,14 @@ h1 {
   z-index: 50;
   padding: 12px 16px;
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 700;
   text-align: center;
-  background: var(--warning-bg);
-  color: var(--warning);
-  border-bottom: 2px solid var(--warning);
+  background: var(--warning);
+  color: #ffffff;
 }
 .banner.ok {
-  background: var(--success-bg);
-  color: var(--success);
-  border-bottom-color: var(--success);
+  background: var(--success);
+  color: #ffffff;
 }
 
 /* ---------- Liste des containers existants (nouveau container) ---------- */
@@ -150,7 +187,7 @@ h1 {
   font-size: 1.05rem;
   font-weight: 700;
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -196,6 +233,23 @@ h1 {
 }
 
 /* ---------- Formulaire ---------- */
+/* Les champs sont regroupés en 3 blocs visuels (description, quantité/poids,
+   valeur/période) plutôt que d'être tous à plat les uns sous les autres :
+   plus facile de vérifier d'un coup d'œil qu'on n'a rien oublié dans un
+   groupe, sur un écran qui a beaucoup de champs. */
+
+.bloc-carte {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 16px 16px;
+  margin: 22px 0;
+}
+.titre-bloc {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 16px 0 4px;
+}
 
 .label-champ {
   display: block;
@@ -272,23 +326,31 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
 .panier-total { font-size: 1.15rem; margin-bottom: 10px; }
 .liste-pesees { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .pesee-chip {
-  padding: 8px 12px;
+  padding: 8px 8px 8px 14px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 999px;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+}
+/* La valeur elle-même est cliquable pour la corriger (elle revient dans le
+   champ de saisie), plutôt que de devoir la supprimer puis tout retaper. */
+.pesee-valeur {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  padding: 4px 2px;
 }
 .pesee-chip button {
   border: none;
   background: none;
   color: var(--danger);
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   cursor: pointer;
-  padding: 0 4px;
+  min-width: 36px;
+  min-height: 36px;
 }
 .ajout-pesee { display: flex; gap: 8px; }
 .ajout-pesee input { flex: 1; }
@@ -329,6 +391,7 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
 }
 .recap-ligne:last-child { border-bottom: none; }
 .recap-ligne .valeur { font-weight: 700; text-align: right; }
+.recap-ligne .valeur.valeur-alerte { color: var(--warning); }
 .recap-photo {
   width: 100%;
   max-height: 220px;
@@ -384,24 +447,29 @@ textarea, input[type="text"], input[type="number"], .champ-texte-libre {
 }
 .article-info { flex: 1; min-width: 0; }
 .article-designation { font-weight: 700; }
-.article-meta { color: var(--text-dim); font-size: 0.88rem; }
+.article-meta { color: var(--text-dim); font-size: 0.95rem; }
+.article-erreur { color: var(--danger); font-size: 0.9rem; font-weight: 600; margin-top: 2px; }
 .badge {
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
   white-space: nowrap;
 }
-.badge.envoye { background: var(--success-bg); color: var(--success); }
+/* Fond plein + texte blanc (plutôt que texte coloré sur fond clair) pour
+   un contraste net, y compris en plein soleil. */
+.badge.envoye { background: var(--success); color: #ffffff; }
 .badge.en_attente { background: var(--border); color: var(--text-dim); }
-.badge.echec_a_corriger { background: var(--warning-bg); color: var(--warning); }
+.badge.echec_a_corriger { background: var(--warning); color: #ffffff; }
 
 .btn-supprimer-article {
   border: none;
   background: none;
   color: var(--danger);
   font-size: 1.3rem;
-  padding: 6px 4px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px;
   cursor: pointer;
   flex-shrink: 0;
 }
