@@ -954,7 +954,15 @@ async function chargerSuggestions() {
 const MAX_SUGGESTIONS_AFFICHEES = 12;
 
 function fusionnerSuggestions(data) {
-  const matieres = (data.matiere || []).map((x) => x.valeur);
+  // Depuis qu'un objet peut cumuler plusieurs matières, le tableau peut
+  // contenir des valeurs déjà combinées (ex : "PLASTIQUE, CHÊNE, MÉTAL").
+  // On ne les propose jamais comme une pastille de choix rapide : seule une
+  // matière "unique" (une seule à la fois) est une suggestion valable —
+  // une nouvelle pastille ne doit apparaître qu'après une validation
+  // explicite via "Autre" > "Ajouter à la liste".
+  const matieres = (data.matiere || [])
+    .map((x) => x.valeur)
+    .filter((v) => v && v.indexOf(',') === -1);
   const origines = (data.origine || []).map((x) => x.valeur);
   state.suggestions.matiere = Array.from(new Set([...matieres, ...DEFAULT_MATIERES])).slice(0, MAX_SUGGESTIONS_AFFICHEES);
   state.suggestions.origine = Array.from(new Set([...origines, ...DEFAULT_ORIGINES])).slice(0, MAX_SUGGESTIONS_AFFICHEES);
