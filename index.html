@@ -29,8 +29,18 @@
 
 <!-- ===================== NOUVEAU CONTAINER ===================== -->
 <section id="screen-container" class="screen" hidden>
-  <h1>Quelle lettre pour ce container ?</h1>
-  <div id="grille-lettres" class="grille-lettres"></div>
+  <h1>Quel container ?</h1>
+
+  <p class="label-champ">Containers existants</p>
+  <div id="liste-containers-existants" class="liste-containers-existants"></div>
+  <p id="texte-aucun-container" class="texte-info" hidden>Aucun container pour l'instant.</p>
+
+  <p class="label-champ">Créer un nouveau container</p>
+  <div class="row-2">
+    <input type="text" id="champ-nouveau-container" placeholder="Ex : A, B, Z1..." maxlength="3" autocapitalize="characters">
+    <button id="btn-creer-container" class="btn-mini">Créer</button>
+  </div>
+
   <button id="btn-annuler-container" class="lien">Annuler</button>
 </section>
 

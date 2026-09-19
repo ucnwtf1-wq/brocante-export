@@ -133,25 +133,36 @@ h1 {
   border-bottom-color: var(--success);
 }
 
-/* ---------- Grille de lettres (nouveau container) ---------- */
+/* ---------- Liste des containers existants (nouveau container) ---------- */
 
-.grille-lettres {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+.liste-containers-existants {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  margin: 20px 0;
+  margin: 10px 0 24px;
 }
-.grille-lettres button {
-  padding: 20px 0;
-  font-size: 1.4rem;
-  font-weight: 800;
+.btn-container-existant {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 16px 18px;
+  font-size: 1.05rem;
+  font-weight: 700;
   border: 2px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
+  text-align: left;
 }
-.grille-lettres button:active { background: var(--accent); color: var(--accent-text); }
+.btn-container-existant:active { background: var(--accent); color: var(--accent-text); }
+.btn-container-existant .compte {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+.btn-container-existant:active .compte { color: var(--accent-text); }
 
 /* ---------- Photo ---------- */
 

@@ -41,6 +41,10 @@ async function apiCheckContainer(letter) {
   return apiGet('check_container', { container_letter: letter });
 }
 
+async function apiListContainers() {
+  return apiGet('list_containers', {});
+}
+
 async function apiGetSuggestions() {
   return apiGet('get_suggestions', {});
 }

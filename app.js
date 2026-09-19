@@ -8,6 +8,7 @@ const DEFAULT_ORIGINES = ['France', 'Belgique', 'Chine', 'Japon', 'Angleterre', 
 const DRAFT_KEY = 'draft_en_cours';
 const CONTAINER_KEY = 'container_actuel';
 const SUGGESTIONS_KEY = 'suggestions_cache';
+const CONTAINERS_LISTE_KEY = 'containers_liste_cache';
 
 const el = (id) => document.getElementById(id);
 
@@ -34,7 +35,7 @@ function afficherEcran(id) {
 async function rafraichirAccueil() {
   el('home-lettre').textContent = state.containerLetter || '-';
   if (!state.containerLetter) {
-    afficherEcran('screen-container');
+    afficherEcranContainer();
     return;
   }
   const counts = await dbCountByStatus(state.containerLetter);
@@ -44,21 +45,72 @@ async function rafraichirAccueil() {
 
 el('btn-ajouter').addEventListener('click', () => demarrerNouvelArticle());
 el('btn-voir-articles').addEventListener('click', () => afficherListeArticles());
-el('btn-nouveau-container').addEventListener('click', () => afficherEcran('screen-container'));
+el('btn-nouveau-container').addEventListener('click', () => afficherEcranContainer());
 
 // ---------------- Nouveau container ----------------
+//
+// L'utilisateur voit d'abord la liste des containers déjà utilisés (avec
+// leur nombre d'articles), pour continuer facilement l'un d'eux plutôt que
+// de deviner une lettre "à l'aveugle". En dessous, un champ texte libre
+// permet de créer un nouveau container avec n'importe quel code court
+// (une lettre, ou une variante une fois l'alphabet épuisé : Z1, Z2...).
 
-function construireGrilleLettres() {
-  const grille = el('grille-lettres');
-  grille.innerHTML = '';
-  for (let i = 0; i < 26; i++) {
-    const lettre = String.fromCharCode(65 + i);
-    const btn = document.createElement('button');
-    btn.textContent = lettre;
-    btn.addEventListener('click', () => choisirLettreContainer(lettre));
-    grille.appendChild(btn);
+async function afficherEcranContainer() {
+  el('champ-nouveau-container').value = '';
+  afficherEcran('screen-container');
+  renderListeContainersExistants(chargerListeContainersDepuisCache());
+
+  if (!navigator.onLine) return;
+  try {
+    const rep = await apiListContainers();
+    if (rep && rep.status === 'success') {
+      const containers = rep.data.containers || [];
+      localStorage.setItem(CONTAINERS_LISTE_KEY, JSON.stringify(containers));
+      renderListeContainersExistants(containers);
+    }
+  } catch (e) {
+    // Hors-ligne ou serveur indisponible : on garde la liste déjà affichée
+    // (celle en cache), ce n'est pas bloquant.
   }
 }
+
+function chargerListeContainersDepuisCache() {
+  try {
+    const raw = localStorage.getItem(CONTAINERS_LISTE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function renderListeContainersExistants(containers) {
+  const conteneur = el('liste-containers-existants');
+  conteneur.innerHTML = '';
+  el('texte-aucun-container').hidden = containers.length > 0;
+  containers.forEach((c) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-container-existant';
+    btn.innerHTML = '<span>Container ' + c.letter + '</span><span class="compte">' + c.nb_articles + ' article(s)</span>';
+    btn.addEventListener('click', () => choisirLettreContainer(c.letter));
+    conteneur.appendChild(btn);
+  });
+}
+
+// Le champ de saisie force automatiquement les majuscules et retire les
+// caractères qui ne sont ni des lettres ni des chiffres, pour rester
+// cohérent avec ce que le serveur accepte (voir normalizeLetter_ côté Code.gs).
+el('champ-nouveau-container').addEventListener('input', () => {
+  const champ = el('champ-nouveau-container');
+  champ.value = champ.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+});
+
+el('btn-creer-container').addEventListener('click', () => {
+  const val = el('champ-nouveau-container').value.trim();
+  if (!val) {
+    alert('Merci de saisir une lettre ou un code pour le nouveau container (ex : A, Z1...).');
+    return;
+  }
+  choisirLettreContainer(val);
+});
 
 async function choisirLettreContainer(lettre) {
   let info = { exists: false, nb_articles: 0 };
@@ -631,7 +683,6 @@ function fusionnerSuggestions(data) {
 
 (async function demarrer() {
   await demanderStockagePersistant();
-  construireGrilleLettres();
   await chargerSuggestions();
   demarrerDeclencheursSync();
 
