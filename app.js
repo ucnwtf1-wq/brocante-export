@@ -21,6 +21,11 @@ function texteArticles(n) {
 
 const state = {
   containerLetter: localStorage.getItem(CONTAINER_KEY) || null,
+  // Dernier statut connu ('Ouvert'/'Fermé') du container actif — rafraîchi à
+  // chaque passage par l'accueil (voir rafraichirStatutContainerAccueil).
+  // Purement indicatif : ça ne bloque jamais techniquement l'ajout d'un
+  // article, ça sert juste à prévenir avant de le faire par mégarde.
+  containerStatut: null,
   draft: null,
   suggestions: { matiere: [...DEFAULT_MATIERES], origine: [...DEFAULT_ORIGINES] },
   matiereChoisie: null,
@@ -47,10 +52,66 @@ async function rafraichirAccueil() {
   }
   const counts = await dbCountByStatus(state.containerLetter);
   el('home-count-total').textContent = texteArticles(counts.total);
+  rafraichirStatutContainerAccueil();
   afficherEcran('screen-home');
 }
 
-el('btn-ajouter').addEventListener('click', () => demarrerNouvelArticle());
+// Affiche (si connu) l'état "Ouvert"/"Fermé" du container actif, avec un
+// bouton pour basculer de l'un à l'autre. Purement un repère pratique pour
+// s'y retrouver quand plusieurs containers sont en cours en parallèle —
+// voir la remarque sur state.containerStatut plus haut.
+async function rafraichirStatutContainerAccueil() {
+  const bloc = el('home-statut-container');
+  if (!navigator.onLine) { bloc.hidden = true; return; }
+  try {
+    const rep = await apiCheckContainer(state.containerLetter);
+    if (rep && rep.status === 'success' && rep.data.exists) {
+      state.containerStatut = rep.data.statut || 'Ouvert';
+      const ferme = state.containerStatut === 'Fermé';
+      el('home-statut-texte').textContent = ferme ? '🔒 Container marqué comme terminé' : '';
+      el('btn-toggle-statut-container').textContent = ferme ? 'Rouvrir ce container' : 'Marquer ce container comme terminé';
+      bloc.hidden = false;
+    } else {
+      bloc.hidden = true;
+    }
+  } catch (e) {
+    // Hors-ligne ou serveur indisponible : on garde le dernier statut connu
+    // sans rien afficher de neuf, plutôt que de bloquer l'accueil.
+    bloc.hidden = true;
+  }
+}
+
+el('btn-toggle-statut-container').addEventListener('click', async () => {
+  const ferme = state.containerStatut === 'Fermé';
+  const nouveauStatut = ferme ? 'Ouvert' : 'Fermé';
+  const message = ferme
+    ? 'Rouvrir le container ' + state.containerLetter + ' pour pouvoir y ajouter d\'autres articles ?'
+    : 'Marquer le container ' + state.containerLetter + ' comme terminé ?\n\nVous pourrez toujours le rouvrir plus tard si besoin.';
+  const confirme = await confirmerPersonnalise(message, 'Confirmer');
+  if (!confirme) return;
+  try {
+    const rep = await apiSetContainerStatus(state.containerLetter, nouveauStatut);
+    if (rep && rep.status === 'success') {
+      await rafraichirStatutContainerAccueil();
+    } else {
+      alert("Impossible de mettre à jour le statut du container pour l'instant. Réessayez quand vous aurez du réseau.");
+    }
+  } catch (e) {
+    alert('Pas de connexion : réessayez quand vous aurez du réseau.');
+  }
+});
+
+el('btn-ajouter').addEventListener('click', async () => {
+  // Le container est fermé "sur le papier" mais rien n'empêche
+  // techniquement d'y ajouter quand même un article (ex : un objet oublié
+  // retrouvé après coup) — on demande juste confirmation pour éviter de le
+  // faire par mégarde.
+  if (state.containerStatut === 'Fermé') {
+    const confirme = await confirmerPersonnalise('Ce container est marqué comme terminé.\n\nAjouter quand même un nouvel article dedans ?', 'Continuer');
+    if (!confirme) return;
+  }
+  demarrerNouvelArticle();
+});
 el('btn-voir-articles').addEventListener('click', () => afficherListeArticles());
 el('btn-nouveau-container').addEventListener('click', () => afficherEcranContainer());
 
@@ -100,7 +161,8 @@ function renderListeContainersExistants(containers) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-container-existant';
-    btn.innerHTML = '<span>Container ' + c.letter + '</span><span class="compte">' + texteArticles(c.nb_articles) + '</span>';
+    const badgeFerme = c.statut === 'Fermé' ? ' · 🔒 Terminé' : '';
+    btn.innerHTML = '<span>Container ' + c.letter + badgeFerme + '</span><span class="compte">' + texteArticles(c.nb_articles) + '</span>';
     // On connaît déjà son nombre d'articles (affiché dans cette liste) :
     // pas besoin de revérifier auprès du serveur, ce qui rendait ce tap
     // lent (attente réseau) et donnait l'impression que rien ne se passait.
@@ -711,7 +773,16 @@ function calculerDimensionsFinale() {
   return parties.join(' / ');
 }
 
-el('btn-voir-recap').addEventListener('click', () => {
+el('btn-voir-recap').addEventListener('click', async () => {
+  // Simple garde-fou : rien n'empêche de continuer, mais on prévient si la
+  // désignation (souvent la seule information qui identifie vraiment
+  // l'objet) a été oubliée — plus facile à rattraper ici qu'une fois
+  // l'article déjà envoyé au bureau.
+  if (!(state.draft.designation || '').trim()) {
+    const confirme = await confirmerPersonnalise('Aucune désignation n\'a été saisie pour cet article.\n\nContinuer quand même ?', 'Continuer');
+    if (!confirme) return;
+  }
+
   state.draft.origine = state.draft.origine; // déjà à jour via chips
   state.draft.periode = calculerPeriodeFinale();
   sauvegarderBrouillon();
@@ -809,13 +880,44 @@ el('btn-retour-accueil').addEventListener('click', () => rafraichirAccueil());
 
 // ---------------- Liste des articles ----------------
 
+// Contenu complet (non filtré) de la liste actuellement affichée, pour
+// pouvoir filtrer localement au fil de la frappe sans redemander à la base.
+let articlesListeCourante = [];
+
 async function afficherListeArticles() {
   el('list-lettre').textContent = state.containerLetter || '';
-  const articles = await dbGetArticlesByContainer(state.containerLetter);
+  articlesListeCourante = await dbGetArticlesByContainer(state.containerLetter);
+  el('champ-recherche-articles').value = '';
+  rendreListeArticles(articlesListeCourante);
+  afficherEcran('screen-list');
+}
+
+// Insensible à la casse et aux accents (ex : "chene" retrouve "Chêne"), pour
+// que la recherche marche même tapée vite au doigt sans accents.
+function normaliserRecherche(txt) {
+  return (txt || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+el('champ-recherche-articles').addEventListener('input', () => {
+  const terme = normaliserRecherche(el('champ-recherche-articles').value);
+  if (!terme) {
+    rendreListeArticles(articlesListeCourante);
+    return;
+  }
+  const filtres = articlesListeCourante.filter((a) =>
+    normaliserRecherche(a.reference).includes(terme) ||
+    normaliserRecherche(a.designation).includes(terme)
+  );
+  rendreListeArticles(filtres);
+});
+
+function rendreListeArticles(articles) {
   const conteneur = el('liste-articles');
   conteneur.innerHTML = '';
   if (articles.length === 0) {
-    conteneur.innerHTML = '<p class="texte-info">Aucun article pour l\'instant.</p>';
+    conteneur.innerHTML = el('champ-recherche-articles').value.trim()
+      ? '<p class="texte-info">Aucun article ne correspond à cette recherche.</p>'
+      : '<p class="texte-info">Aucun article pour l\'instant.</p>';
   }
   articles.forEach((a) => {
     const carte = document.createElement('div');
@@ -852,7 +954,6 @@ async function afficherListeArticles() {
     carte.addEventListener('click', () => afficherDetailArticle(a));
     conteneur.appendChild(carte);
   });
-  afficherEcran('screen-list');
 }
 
 el('btn-liste-retour').addEventListener('click', () => rafraichirAccueil());
@@ -912,7 +1013,7 @@ el('btn-detail-retour').addEventListener('click', () => afficherListeArticles())
 // renvoie alors silencieusement "false" — on a ce comportement exact avec
 // le bouton supprimer qui semblait ne rien faire. On utilise donc notre
 // propre fenêtre de confirmation, qui fonctionne partout de la même façon.
-function confirmerPersonnalise(message) {
+function confirmerPersonnalise(message, labelConfirmation) {
   return new Promise((resolve) => {
     const overlay = document.createElement('div');
     overlay.className = 'modal-overlay';
@@ -935,7 +1036,7 @@ function confirmerPersonnalise(message) {
     const btnConfirmer = document.createElement('button');
     btnConfirmer.type = 'button';
     btnConfirmer.className = 'btn-mini modal-btn-confirmer';
-    btnConfirmer.textContent = 'Supprimer';
+    btnConfirmer.textContent = labelConfirmation || 'Supprimer';
 
     boutons.appendChild(btnAnnuler);
     boutons.appendChild(btnConfirmer);

@@ -30,6 +30,16 @@ function genererUUID() {
   });
 }
 
+// Codes d'erreur qui ne se résoudront JAMAIS en réessayant (un problème
+// dans les données ou de configuration, pas un souci réseau/serveur
+// passager) : autant le signaler tout de suite plutôt que de retenter en
+// boucle pendant des heures sans jamais prévenir clairement l'utilisateur.
+// INVALID_PRICE / INVALID_PAYLOAD : quelque chose à corriger dans l'article
+// lui-même. UNAUTHORIZED : la clé de sécurité de l'app (voir config.js) ne
+// correspond plus à celle du serveur — un réessai ne changera rien tant que
+// les deux ne sont pas remis d'accord.
+const ERREURS_DEFINITIVES = ['INVALID_PRICE', 'INVALID_PAYLOAD', 'UNAUTHORIZED'];
+
 function calculerDelaiAttente(tentatives) {
   const paliers = [10, 30, 60, 300, 900]; // secondes : 10s, 30s, 1min, 5min, 15min
   const idx = Math.min(tentatives, paliers.length - 1);
@@ -61,10 +71,12 @@ async function synchroniserFile() {
           await dbPutArticle(article);
         } else {
           const message = (reponse && reponse.message) || 'Erreur inconnue du serveur';
-          if (reponse && reponse.error_code === 'INVALID_PRICE') {
-            // Erreur définitive : ne sert à rien de retenter indéfiniment,
-            // mais on ne supprime JAMAIS l'article — il reste visible et
-            // modifiable pour que l'utilisateur corrige le prix.
+          if (reponse && ERREURS_DEFINITIVES.includes(reponse.error_code)) {
+            // Erreur définitive : ne sert à rien de retenter indéfiniment
+            // (le problème ne se résoudra pas tout seul avec le temps —
+            // contrairement à un serveur momentanément occupé), mais on ne
+            // supprime JAMAIS l'article : il reste visible et modifiable
+            // pour que l'utilisateur corrige ce qui doit l'être.
             article.statutSync = 'echec_a_corriger';
           } else {
             article.statutSync = 'en_attente';

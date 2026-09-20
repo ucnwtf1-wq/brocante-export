@@ -20,6 +20,10 @@
     <div class="home-container-label">Container <span id="home-lettre">-</span></div>
     <div class="home-count"><span id="home-count-total">0 article</span></div>
   </div>
+  <div id="home-statut-container" class="home-statut" hidden>
+    <span id="home-statut-texte"></span>
+    <button id="btn-toggle-statut-container" type="button" class="lien-secondaire"></button>
+  </div>
   <button id="btn-ajouter" class="btn-geant">+ Ajouter un article</button>
   <div class="home-links">
     <button id="btn-voir-articles" class="lien-secondaire">Voir les articles de ce container</button>
@@ -180,6 +184,7 @@
 <!-- ===================== LISTE DES ARTICLES ===================== -->
 <section id="screen-list" class="screen" hidden>
   <h1>Articles du container <span id="list-lettre"></span></h1>
+  <input type="search" id="champ-recherche-articles" class="champ-texte-libre" placeholder="Rechercher par référence ou désignation">
   <div id="liste-articles" class="liste-articles"></div>
   <button id="btn-liste-retour" class="lien">Retour à l'accueil</button>
 </section>

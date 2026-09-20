@@ -152,6 +152,14 @@ h1 {
 }
 .home-links { margin-top: 30px; }
 
+.home-statut {
+  text-align: center;
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+  color: var(--text-dim);
+}
+.home-statut .lien-secondaire { margin: 4px 0 0; padding: 8px; font-size: 0.95rem; }
+
 /* ---------- Rappel du container actif (photo / formulaire / récap) ---------- */
 
 .bandeau-container-actif {
