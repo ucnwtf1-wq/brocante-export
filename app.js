@@ -1009,51 +1009,29 @@ setInterval(rafraichirBandeau, 5000);
 
 // ---------------- Suggestions (matière / origine) ----------------
 
-async function chargerSuggestions() {
-  try {
-    const cache = localStorage.getItem(SUGGESTIONS_KEY);
-    if (cache) {
-      const parsed = JSON.parse(cache);
-      fusionnerSuggestions(parsed);
-    }
-  } catch (e) { /* pas grave */ }
-
-  if (!navigator.onLine) return;
-  try {
-    const rep = await apiGetSuggestions();
-    if (rep && rep.status === 'success') {
-      localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(rep.data));
-      fusionnerSuggestions(rep.data);
-    }
-  } catch (e) { /* hors-ligne ou serveur indisponible : on garde le cache */ }
-}
-
 // Nombre maximum de chips affichées par liste (matière/origine) : au-delà,
 // l'écran deviendrait trop chargé pour rester rapide à utiliser au doigt.
-// Le serveur trie déjà les valeurs par fréquence d'usage (voir
-// handleGetSuggestions côté Code.gs), donc ne garder que les premières
-// revient à garder les plus utilisées.
 const MAX_SUGGESTIONS_AFFICHEES = 12;
 
-function fusionnerSuggestions(data) {
-  // Depuis qu'un objet peut cumuler plusieurs matières, le tableau peut
-  // contenir des valeurs déjà combinées (ex : "PLASTIQUE, CHÊNE, MÉTAL").
-  // On ne les propose jamais comme une pastille de choix rapide : seule une
-  // matière "unique" (une seule à la fois) est une suggestion valable —
-  // une nouvelle pastille ne doit apparaître qu'après une validation
-  // explicite via "Autre" > "Ajouter à la liste".
-  // Une suggestion supprimée par le client (voir demanderSuppressionSuggestion)
-  // ne doit jamais réapparaître, même si le tableau la renvoie encore.
+// Charge les suggestions (matière/origine) UNIQUEMENT depuis cet appareil :
+// les valeurs de base ci-dessus (DEFAULT_MATIERES/DEFAULT_ORIGINES), plus
+// celles explicitement validées ici via "Autre" > "Ajouter à la liste"
+// (voir ajouterSuggestionLocale, qui écrit dans SUGGESTIONS_KEY).
+//
+// Important : on n'va PLUS chercher du côté du tableau les valeurs déjà
+// utilisées par le passé pour en refaire des pastilles automatiquement —
+// une nouvelle pastille ne doit apparaître que si elle a été validée ainsi
+// par le client, jamais simplement parce qu'un article l'a déjà utilisée
+// une fois (même hors "Autre").
+function chargerSuggestions() {
   const masquees = chargerSuggestionsMasquees();
-  const matieresMasquees = masquees.matiere || [];
-  const originesMasquees = masquees.origine || [];
+  let cache = {};
+  try {
+    cache = JSON.parse(localStorage.getItem(SUGGESTIONS_KEY) || '{}');
+  } catch (e) { /* pas grave : on reste sur les valeurs par défaut */ }
 
-  const matieres = (data.matiere || [])
-    .map((x) => x.valeur)
-    .filter((v) => v && v.indexOf(',') === -1 && !matieresMasquees.includes(v));
-  const origines = (data.origine || [])
-    .map((x) => x.valeur)
-    .filter((v) => v && !originesMasquees.includes(v));
+  const matieres = (cache.matiere || []).filter((v) => !(masquees.matiere || []).includes(v));
+  const origines = (cache.origine || []).filter((v) => !(masquees.origine || []).includes(v));
   state.suggestions.matiere = Array.from(new Set([...matieres, ...DEFAULT_MATIERES])).slice(0, MAX_SUGGESTIONS_AFFICHEES);
   state.suggestions.origine = Array.from(new Set([...origines, ...DEFAULT_ORIGINES])).slice(0, MAX_SUGGESTIONS_AFFICHEES);
 }
