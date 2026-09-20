@@ -20,14 +20,17 @@ function fetchAvecDelai(url, options) {
 }
 
 async function apiPost(action, payload) {
-  const body = JSON.stringify(Object.assign({ action }, payload));
+  // La clé secrète (voir config.js) part avec chaque appel, mélangée aux
+  // autres champs — pas dans un en-tête, pour ne pas casser l'astuce
+  // anti-preflight expliquée en haut de ce fichier.
+  const body = JSON.stringify(Object.assign({ action, api_secret: window.API_SECRET }, payload));
   const res = await fetchAvecDelai(window.BACKEND_URL, { method: 'POST', body });
   if (!res.ok) throw new Error('Réponse serveur invalide (' + res.status + ')');
   return res.json();
 }
 
 async function apiGet(action, params) {
-  const qs = new URLSearchParams(Object.assign({ action }, params || {})).toString();
+  const qs = new URLSearchParams(Object.assign({ action, api_secret: window.API_SECRET }, params || {})).toString();
   const res = await fetchAvecDelai(window.BACKEND_URL + '?' + qs, { method: 'GET' });
   if (!res.ok) throw new Error('Réponse serveur invalide (' + res.status + ')');
   return res.json();

@@ -315,6 +315,17 @@ function compresserPhoto(fichier) {
 el('btn-photo-suivant').addEventListener('click', () => allerAuFormulaire());
 el('btn-sans-photo').addEventListener('click', () => allerAuFormulaire());
 
+// Cet écran n'avait jusqu'ici aucun moyen de revenir en arrière : on ajoute
+// donc la même confirmation que "Annuler cet article" plus loin dans le
+// formulaire, car quitter ici perd aussi une photo déjà prise.
+el('btn-annuler-photo').addEventListener('click', async () => {
+  const confirme = await confirmerPersonnalise('Abandonner cet article et sa photo ?\n\nCe qui a déjà été rempli sera perdu.');
+  if (!confirme) return;
+  effacerBrouillon();
+  state.draft = null;
+  rafraichirAccueil();
+});
+
 // ---------------- Formulaire ----------------
 
 function allerAuFormulaire() {
@@ -1058,13 +1069,14 @@ function fusionnerSuggestions(data) {
     navigator.serviceWorker.register('service-worker.js').catch(() => {});
   }
 
-  const brouillon = chargerBrouillon();
-  if (brouillon && state.containerLetter) {
-    state.draft = brouillon;
-    majBandeauxContainer();
-    restaurerEcranPhoto();
-  } else {
-    rafraichirAccueil();
-  }
+  // À l'ouverture de l'app, on affiche TOUJOURS l'accueil en premier —
+  // même s'il existe un brouillon d'article en cours (photo prise, formulaire
+  // à moitié rempli...). Ce brouillon n'est pas perdu pour autant : il reste
+  // enregistré sur l'appareil et sera repris automatiquement dès que le
+  // client retape sur "+ Ajouter un article" (voir demarrerNouvelArticle).
+  // Avant ce correctif, l'app "sautait" directement sur l'écran photo dans
+  // ce cas, ce qui donnait l'impression qu'elle s'ouvrait toute seule sur
+  // le mauvais écran.
+  rafraichirAccueil();
   rafraichirBandeau();
 })();
