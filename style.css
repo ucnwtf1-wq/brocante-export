@@ -224,6 +224,23 @@ h1 {
 }
 .btn-container-existant:active .compte { color: var(--accent-text); }
 
+.ligne-container-existant {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+.ligne-container-existant .btn-container-existant { flex: 1; }
+.btn-supprimer-container {
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-size: 1.3rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px;
+  cursor: pointer;
+}
+
 /* ---------- Photo ---------- */
 
 .photo-zone {

@@ -158,6 +158,9 @@ function renderListeContainersExistants(containers) {
   conteneur.innerHTML = '';
   el('texte-aucun-container').hidden = containers.length > 0;
   containers.forEach((c) => {
+    const ligne = document.createElement('div');
+    ligne.className = 'ligne-container-existant';
+
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'btn-container-existant';
@@ -167,8 +170,75 @@ function renderListeContainersExistants(containers) {
     // pas besoin de revérifier auprès du serveur, ce qui rendait ce tap
     // lent (attente réseau) et donnait l'impression que rien ne se passait.
     btn.addEventListener('click', () => choisirLettreContainer(c.letter, { exists: true, nb_articles: c.nb_articles }));
-    conteneur.appendChild(btn);
+
+    // Corrige une mauvaise frappe (ex : "Y2" créé par erreur) — supprime
+    // le container pour de bon, avec confirmation (voir demanderSuppressionContainer).
+    const btnSuppr = document.createElement('button');
+    btnSuppr.type = 'button';
+    btnSuppr.className = 'btn-supprimer-container';
+    btnSuppr.title = 'Supprimer ce container';
+    btnSuppr.setAttribute('aria-label', 'Supprimer le container ' + c.letter);
+    btnSuppr.textContent = '🗑';
+    btnSuppr.addEventListener('click', (evt) => {
+      evt.stopPropagation();
+      demanderSuppressionContainer(c);
+    });
+
+    ligne.appendChild(btn);
+    ligne.appendChild(btnSuppr);
+    conteneur.appendChild(ligne);
   });
+}
+
+// Supprime un container pour de bon : son compteur, son entrée dans
+// l'annuaire, ET son fichier Google Sheets avec ses photos (voir
+// handleDeleteContainer côté serveur). Irréversible — d'où la double
+// validation (le tap sur la poubelle, puis cette confirmation), avec un
+// avertissement explicite si le container contient déjà des articles.
+async function demanderSuppressionContainer(c) {
+  if (!navigator.onLine) {
+    alert('Une connexion internet est nécessaire pour supprimer un container.');
+    return;
+  }
+  const avertissementArticles = c.nb_articles > 0
+    ? '\n\nATTENTION : ' + texteArticles(c.nb_articles) + ' déjà enregistré(s) ' + (c.nb_articles > 1 ? 'seront perdus' : 'sera perdu') + ' définitivement, avec leurs photos.'
+    : '';
+  const confirme = await confirmerPersonnalise(
+    'Supprimer définitivement le container ' + c.letter + ' ?' + avertissementArticles + '\n\nCette action est irréversible.',
+    'Supprimer'
+  );
+  if (!confirme) return;
+
+  try {
+    const rep = await apiDeleteContainer(c.letter);
+    if (!rep || rep.status !== 'success') {
+      alert("Impossible de supprimer ce container pour l'instant. Réessayez.");
+      return;
+    }
+  } catch (e) {
+    alert('Pas de connexion : réessayez quand vous aurez du réseau.');
+    return;
+  }
+
+  // Nettoyage local : si des articles de ce container traînaient encore sur
+  // cet appareil (envoyés ou non), ils n'ont plus de container derrière —
+  // on les retire pour éviter qu'une synchronisation en attente ne
+  // recrée le container tout seul sans que personne ne le sache.
+  const articlesLocaux = await dbGetArticlesByContainer(c.letter);
+  for (const a of articlesLocaux) {
+    await dbDeleteArticle(a.localId);
+  }
+
+  // Si c'était le container actif sur cet appareil, on repart du choix
+  // de container plutôt que de laisser l'accueil pointer vers du vide.
+  if (state.containerLetter === c.letter) {
+    state.containerLetter = null;
+    state.containerStatut = null;
+    localStorage.removeItem(CONTAINER_KEY);
+  }
+
+  localStorage.removeItem(CONTAINERS_LISTE_KEY);
+  afficherEcranContainer();
 }
 
 // Le champ de saisie force automatiquement les majuscules et retire les

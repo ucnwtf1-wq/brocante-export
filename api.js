@@ -55,3 +55,7 @@ async function apiGetSuggestions() {
 async function apiSetContainerStatus(letter, statut) {
   return apiPost('set_container_status', { container_letter: letter, statut });
 }
+
+async function apiDeleteContainer(letter) {
+  return apiPost('delete_container', { container_letter: letter });
+}
